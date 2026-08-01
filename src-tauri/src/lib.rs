@@ -5,6 +5,7 @@
 
 pub mod classification;
 pub mod domain;
+pub mod inventory;
 pub mod process;
 pub mod providers;
 

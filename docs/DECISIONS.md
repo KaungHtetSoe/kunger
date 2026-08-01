@@ -211,3 +211,41 @@ service's merge contract partly load-bearing already: M4.1 must merge same-id re
 different providers (not just deduplicate identical ids), with a defined field-level merge
 strategy — this ADR is the reason that requirement exists, and M4.1's design should reference it
 rather than rediscover the need.
+
+---
+
+## ADR-0013 — Inventory service: order-sensitive id merge + conservative name-based duplicate detection
+
+**Date:** 2026-08-01
+**Status:** Accepted
+
+**Context:** M4.1 needed to fulfill the merge contract ADR-0012 anticipated (same-id records from
+different providers must combine, not just deduplicate) and separately implement cross-manager
+duplicate detection (different ids, same underlying software — e.g. Firefox via APT and
+Flatpak) without ever auto-resolving duplicates (ADR-0005).
+
+**Decision:**
+
+- `inventory::merge::merge_by_id` treats the _first_ item seen for a given id as the
+  authoritative base and every later same-id item as enrichment (fills empty `Option` fields,
+  unions list fields de-duplicated, upgrades classification only on strictly higher confidence,
+  unions reasons when confidence and category tie). This makes provider _registration order_
+  load-bearing: `InventoryService::with_default_providers` registers APT before the desktop and
+  font providers specifically so `apt:*` ids get their authoritative record first.
+- Display-name preference during merge compares `display_name` to `package_name` with exact
+  (not case-insensitive) equality to detect "was this just defaulted to the raw package name" —
+  case-only improvements like "firefox" → "Firefox" are real improvements, not noise.
+- `inventory::duplicates::detect_duplicates` runs _after_ merging and only groups items by
+  normalized display name (lowercased, non-alphanumeric characters stripped) that also differ in
+  `package_manager`. No fuzzy/similarity matching — exact normalized match only, confidence fixed
+  at `Medium` (a name match alone is never `Certain`). Duplicate desktop entries and
+  dpkg-owned-but-manually-detected binaries are already resolved further upstream (by the desktop
+  and manual providers respectively — see their own module docs) and never reach this stage.
+
+**Consequences:** Merge correctness depends on registration order being right, which is
+documented but not compiler-enforced — a future provider that emits `apt:*`-style ids must be
+registered after APT, or its enrichment would incorrectly become the base record instead.
+Name-based duplicate detection will miss real duplicates with divergent naming (e.g. "GIMP" vs.
+"GNU Image Manipulation Program") and is a known, documented limitation rather than a defect —
+stronger matching (app-id heuristics, fuzzy string matching) is future work, not required for
+v0.1's read-only inventory promise.

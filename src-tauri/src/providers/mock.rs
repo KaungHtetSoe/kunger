@@ -83,6 +83,12 @@ impl InventoryProvider for MockInventoryProvider {
     }
 
     async fn scan(&self, ctx: &ScanContext) -> ProviderInventory {
+        if ctx.is_cancelled() {
+            let now = Utc::now();
+            return ProviderInventory::started(self.id.as_str(), now)
+                .finish(now, ProviderStatus::Cancelled);
+        }
+
         if let Some(delay) = self.delay {
             tokio::select! {
                 () = tokio::time::sleep(delay) => {}

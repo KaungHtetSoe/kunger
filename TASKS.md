@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 ## Phase 4 — Intelligence
 
-- [ ] **M4.1** — Unified inventory service (combine providers, timeouts, partial-success reporting)
+- [x] **M4.1** — Unified inventory service (combine providers, timeouts, partial-success reporting)
 - [ ] **M4.2** — Duplicate detection across managers
 - [ ] **M4.3** — SQLite persistence + scan history / diffing
 - [ ] **M4.4** — Tauri IPC command layer + typed frontend service

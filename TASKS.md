@@ -13,7 +13,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 ## Phase 1 — Foundation
 
 - [x] **M1.1** — Architecture design (`docs/ARCHITECTURE.md`, `docs/DECISIONS.md`)
-- [ ] **M1.2** — Repository setup (Tauri 2 + React/TS/Tailwind + Rust toolchain, lint/format/test scaffolding, minimal app shell)
+- [x] **M1.2** — Repository setup (Tauri 2 + React/TS/Tailwind + Rust toolchain, lint/format/test scaffolding, minimal app shell)
 - [ ] **M1.3** — Core domain models (`SoftwareItem` and related enums, serialization tests)
 - [ ] **M1.4** — Provider interface (`InventoryProvider` trait, mock provider)
 - [ ] **M1.5** — Classification engine skeleton + `docs/CLASSIFICATION.md`

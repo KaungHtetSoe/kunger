@@ -35,15 +35,19 @@ For every discovered software item, Kunger must be able to answer:
 ## 3. User Personas
 
 ### 3.1 The System Auditor
+
 A power user, sysadmin, or security-conscious individual who wants a full, honest picture of what's on a machine before making trust or cleanup decisions. Cares most about completeness, ownership clarity, and not missing anything installed outside APT.
 
 ### 3.2 The Developer Workstation Owner
+
 A developer with a machine accumulated over years — APT packages, Flatpak apps, pipx tools, cargo-installed binaries, AppImages dropped in `~/Applications`, and forgotten `/opt` installs. Wants to understand what's actually there and what's safe to ignore, without Kunger touching anything.
 
 ### 3.3 The Migrator / Rebuilder
+
 Someone preparing to reinstall the OS or move to a new machine. Wants an exportable manifest of "what I have" so they can reconstruct their environment, understanding that some categories (manual installs, AppImages without metadata) can only be flagged for manual review, not automatically reproduced.
 
 ### 3.4 The Curious Learner
+
 A user newer to Linux who wants to understand what's installed on their system and how Linux package management actually works, using categorized, explained output as a learning aid.
 
 ---
@@ -57,7 +61,7 @@ A user newer to Linux who wants to understand what's installed on their system a
 - Inspect dependency and reverse-dependency relationships for a package.
 - Check whether updates are available for installed packages (where the underlying manager exposes this safely).
 - Export the inventory for backup, documentation, audit, or migration-planning purposes.
-- Understand *why* Kunger classified something a certain way (transparent classification reasons).
+- Understand _why_ Kunger classified something a certain way (transparent classification reasons).
 - Continue to get a useful, non-crashing result even when some inventory sources (e.g., Flatpak) are unavailable.
 
 ---
@@ -216,7 +220,7 @@ Every item must be assigned exactly one primary category, may have zero or more 
 - The UI must remain responsive during a scan; scanning must not block the main interface.
 - Kunger must avoid one-subprocess-per-package patterns in favor of batched queries wherever the underlying tool supports it (this is a hard requirement, not just an optimization — see `docs/DECISIONS.md` once architecture work begins).
 - Rendering the inventory table/browser must remain smooth for systems with several thousand items (pagination and/or virtualization required, not optional).
-- Exact benchmark targets and measured results are deferred to a future `docs/PERFORMANCE.md`; this section establishes the performance *behaviors* required, not final numbers.
+- Exact benchmark targets and measured results are deferred to a future `docs/PERFORMANCE.md`; this section establishes the performance _behaviors_ required, not final numbers.
 
 ---
 

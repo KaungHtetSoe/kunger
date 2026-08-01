@@ -171,7 +171,7 @@ Design points:
 
 ## 6. Confidence Scoring (design shape)
 
-Confidence is derived from **how many independent, non-contradictory signals** support a category, and how direct those signals are (e.g., "Debian section is exactly `fonts`" is stronger than "package name ends in `-doc`"). The classification layer produces both the level and the specific reasons list so the UI/export can always show *why*, never just a bare score. Exact weighting is defined in `docs/CLASSIFICATION.md`, not here.
+Confidence is derived from **how many independent, non-contradictory signals** support a category, and how direct those signals are (e.g., "Debian section is exactly `fonts`" is stronger than "package name ends in `-doc`"). The classification layer produces both the level and the specific reasons list so the UI/export can always show _why_, never just a bare score. Exact weighting is defined in `docs/CLASSIFICATION.md`, not here.
 
 ---
 

@@ -30,7 +30,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [x] **M3.1** — Desktop application provider (`.desktop` parsing, ownership association)
 - [x] **M3.2** — Font provider (Fontconfig, family grouping, ownership association)
 - [x] **M3.3** — Flatpak provider (apps/runtimes/extensions, user vs. system scope)
-- [ ] **M3.4** — AppImage provider (bounded directories, no execution)
+- [x] **M3.4** — AppImage provider (bounded directories, no execution)
 - [ ] **M3.5** — Manual software provider (bounded directories, ownership-check-first)
 
 ## Phase 4 — Intelligence

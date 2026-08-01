@@ -105,3 +105,28 @@ Architecture Decision Records (ADRs), lightweight format. Append new entries; do
 **Decision:** Not yet made. Candidates: a React Query–style library, or a minimal custom hook layer over `invoke`. To be decided during Prompt 09A (frontend shell) once real IPC shapes exist.
 
 **Consequences:** N/A until decided.
+
+---
+
+## ADR-0009 — Domain types serialize as camelCase JSON; `id` is a provider-defined string
+
+**Date:** 2026-08-01
+**Status:** Accepted
+
+**Context:** Domain types (`SoftwareItem`, `ProviderInventory`, `InventorySummary`, etc.) cross
+the Tauri IPC boundary into TypeScript. Rust's idiomatic `snake_case` field names don't match
+idiomatic TypeScript/JSON `camelCase`. Separately, `SoftwareItem::id` needs a uniqueness strategy.
+
+**Decision:**
+
+- All domain structs and enums use `#[serde(rename_all = "camelCase")]`, so JSON/TypeScript sees
+  `packageName`, `classificationConfidence`, etc., while Rust source stays idiomatic `snake_case`.
+- `ProviderError` serializes as an externally-tagged `{ "kind": "...", "message": "..." }` shape
+  rather than a plain string, so the frontend can branch on error kind without string matching.
+- `SoftwareItem::id` is a provider-defined `String` (e.g. `apt:firefox`,
+  `flatpak:org.mozilla.firefox`), not a random UUID — ids are meant to be human-legible in logs
+  and stable across scans of the same system, not globally unique across systems.
+
+**Consequences:** No serde attribute needs repeating per-field; new fields automatically get
+correct casing. The frontend's generated/hand-written TypeScript types (Prompt 08) should mirror
+this camelCase shape directly rather than re-casing at the IPC boundary.

@@ -1,0 +1,4 @@
+Listing... Done
+this-is-not-a-valid-line
+
+firefox/jammy-updates 129.0+build2-0ubuntu0.22.04.1 amd64 [upgradable from: 128.0+build1-0ubuntu0.22.04.1]

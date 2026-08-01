@@ -130,3 +130,55 @@ idiomatic TypeScript/JSON `camelCase`. Separately, `SoftwareItem::id` needs a un
 **Consequences:** No serde attribute needs repeating per-field; new fields automatically get
 correct casing. The frontend's generated/hand-written TypeScript types (Prompt 08) should mirror
 this camelCase shape directly rather than re-casing at the IPC boundary.
+
+---
+
+## ADR-0010 — `dpkg-query` output uses ASCII unit/record separators, not delimited text
+
+**Date:** 2026-08-01
+**Status:** Accepted
+
+**Context:** The APT provider's fast inventory stage needs one batched `dpkg-query` call
+returning every installed package's metadata (name, version, section, description, etc.) in a
+single parseable blob, per `docs/SECURITY.md`'s "never parse human-formatted output when a
+stable machine-readable format exists" and "avoid one command per package" requirements. A
+package's description or maintainer field can contain almost any printable character, including
+common delimiter choices like commas, pipes, or tabs.
+
+**Decision:** The `--showformat` string passed to `dpkg-query` separates fields with the ASCII
+Unit Separator (`\u{1f}`) and records with the ASCII Record Separator (`\u{1e}`) — control
+characters that cannot appear in any well-formed dpkg field, rather than punctuation a
+description might legitimately contain. `src-tauri/src/providers/apt/parser.rs` parses this
+format; fixtures under `src-tauri/tests/fixtures/apt/` were generated with `printf` (not the
+`Write` tool) to guarantee byte-exact control characters.
+
+**Consequences:** Parsing is unambiguous regardless of description content, at the cost of
+fixture files being illegible in a plain text editor (`od -c` or equivalent is needed to inspect
+them). A record with an unexpected field count is treated as a parse warning and skipped, never
+a fatal error — see `docs/ARCHITECTURE.md` §4.
+
+---
+
+## ADR-0011 — `ProcessRunner`: one timeout wraps output-reading and exit-waiting together
+
+**Date:** 2026-08-01
+**Status:** Accepted
+
+**Context:** `src-tauri/src/process/mod.rs` is the single safe process-execution abstraction
+every provider uses (`docs/ARCHITECTURE.md` §2.7). It needs both a timeout and an output-size
+cap, and needs to decide how those two protections interact when a child process misbehaves in
+both ways at once (e.g. hangs _and_ produces runaway output).
+
+**Decision:** `ProcessRunner::run` wraps stdout/stderr reading and `child.wait()` in a _single_
+`tokio::time::timeout(self.timeout, ...)`, rather than separate timeouts per phase. If the
+output cap is hit, the reader stops early and returns `OutputTooLarge` once both streams finish
+being read — but if the child is still writing past that cap and blocks on a full pipe buffer,
+the process is only guaranteed to be killed when the single overall timeout elapses, not
+immediately upon exceeding the byte cap.
+
+**Consequences:** Simpler implementation and a single timeout value to reason about per call
+site, at the cost of slightly delayed cleanup in the rare "hung and oversized output" case —
+still bounded (never hangs forever), just not maximally responsive. Callers needing tighter
+responsiveness should construct a `ProcessRunner` with a shorter `timeout`. Every
+`ProcessRunner` timeout used by a provider must stay shorter than that provider's
+`ScanContext::timeout` budget, per ADR-0007.

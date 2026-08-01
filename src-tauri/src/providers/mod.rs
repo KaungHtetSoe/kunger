@@ -2,6 +2,7 @@
 //! Flatpak, desktop entries, fonts, AppImage, manual detection, ...)
 //! implements. See `docs/ARCHITECTURE.md` §2.2 and §4.
 
+pub mod apt;
 #[cfg(test)]
 pub mod mock;
 

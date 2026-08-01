@@ -20,8 +20,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 ## Phase 2 — Debian/Ubuntu MVP
 
-- [ ] **M2.1** — APT/dpkg provider (staged scan, fixtures, no per-package subprocess spam)
-- [ ] **M2.2** — Classification rules for APT-sourced items
+- [x] **M2.1** — APT/dpkg provider (staged scan, fixtures, no per-package subprocess spam)
+- [x] **M2.2** — Classification rules for APT-sourced items (wired into the APT provider directly via `Evidence`/`classify()`)
 - [ ] **M2.3** — Inventory browser (table, filters, sort, search) — basic version
 - [ ] **M2.4** — Software details view
 

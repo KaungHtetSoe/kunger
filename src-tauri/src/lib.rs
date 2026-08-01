@@ -5,6 +5,7 @@
 
 pub mod classification;
 pub mod domain;
+pub mod process;
 pub mod providers;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

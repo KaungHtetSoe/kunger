@@ -3,6 +3,7 @@
 //! implements. See `docs/ARCHITECTURE.md` §2.2 and §4.
 
 pub mod apt;
+pub mod desktop;
 pub mod flatpak;
 #[cfg(test)]
 pub mod mock;

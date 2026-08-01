@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Hidden Helper
+Exec=/usr/lib/hidden-helper --background
+Hidden=true
+NoDisplay=true

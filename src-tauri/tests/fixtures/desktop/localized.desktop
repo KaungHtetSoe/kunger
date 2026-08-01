@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Firewall
+Name[fr]=Pare-feu
+Name[de]=Firewall-Einstellungen
+Comment=Configure the firewall
+Comment[fr]=Configurer le pare-feu
+Exec=firewall-config
+Categories=Settings;System;

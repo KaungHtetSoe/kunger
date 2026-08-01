@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Comment=A desktop entry that forgot to set Name
+Exec=/usr/bin/nameless

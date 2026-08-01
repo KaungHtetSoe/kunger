@@ -97,7 +97,36 @@ impl ProcessRunner {
     /// killed once this single timeout elapses, not immediately upon
     /// exceeding the cap; callers needing tighter responsiveness should use
     /// a shorter `timeout`.
+    ///
+    /// A non-zero exit status is treated as a failure ([`RunError::NonZeroExit`]).
+    /// For commands where that isn't true — e.g. `dpkg -S` exits non-zero
+    /// when *any* queried path is unowned, even while still printing valid
+    /// results for the owned ones on stdout — use
+    /// [`Self::run_allow_any_exit`] instead.
     pub async fn run(&self, spec: &CommandSpec) -> Result<CommandOutput, RunError> {
+        let output = self.run_raw(spec).await?;
+
+        if !output.exit_code.map(|code| code == 0).unwrap_or(false) {
+            return Err(RunError::NonZeroExit(
+                spec.program.clone(),
+                output.exit_code.unwrap_or(-1),
+                output.stderr,
+            ));
+        }
+
+        Ok(output)
+    }
+
+    /// Like [`Self::run`], but returns the output regardless of exit code —
+    /// only a genuine execution problem (not found, timed out, spawn
+    /// failure, output too large) is an error. Use this for commands whose
+    /// exit code encodes a result (e.g. "no match") rather than
+    /// "execution failed."
+    pub async fn run_allow_any_exit(&self, spec: &CommandSpec) -> Result<CommandOutput, RunError> {
+        self.run_raw(spec).await
+    }
+
+    async fn run_raw(&self, spec: &CommandSpec) -> Result<CommandOutput, RunError> {
         let mut command = Command::new(&spec.program);
         command
             .args(&spec.args)
@@ -144,20 +173,11 @@ impl ProcessRunner {
 
         let status = status_result
             .map_err(|error| RunError::SpawnFailed(spec.program.clone(), error.to_string()))?;
-        let exit_code = status.code();
-
-        if !status.success() {
-            return Err(RunError::NonZeroExit(
-                spec.program.clone(),
-                exit_code.unwrap_or(-1),
-                stderr,
-            ));
-        }
 
         Ok(CommandOutput {
             stdout,
             stderr,
-            exit_code,
+            exit_code: status.code(),
         })
     }
 }
@@ -270,5 +290,32 @@ mod tests {
         let error = runner.run(&spec).await.unwrap_err();
 
         assert!(matches!(error, RunError::OutputTooLarge(_, 10)));
+    }
+
+    #[tokio::test]
+    async fn run_allow_any_exit_returns_output_even_on_non_zero_exit() {
+        let runner = ProcessRunner::default();
+        let spec = CommandSpec::new("sh").args(["-c", "echo partial-output; exit 3"]);
+
+        let output = runner
+            .run_allow_any_exit(&spec)
+            .await
+            .expect("should not error on non-zero exit");
+
+        assert_eq!(output.stdout.trim(), "partial-output");
+        assert_eq!(output.exit_code, Some(3));
+    }
+
+    #[tokio::test]
+    async fn run_allow_any_exit_still_reports_a_missing_command() {
+        let runner = ProcessRunner::default();
+        let spec = CommandSpec::new("kunger-definitely-not-a-real-command-xyz");
+
+        let error = runner.run_allow_any_exit(&spec).await.unwrap_err();
+
+        assert_eq!(
+            error,
+            RunError::NotFound("kunger-definitely-not-a-real-command-xyz".to_string())
+        );
     }
 }

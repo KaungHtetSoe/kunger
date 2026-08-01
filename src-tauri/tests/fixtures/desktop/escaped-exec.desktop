@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Escaped Exec App
+Exec=/usr/bin/app --flag="value with spaces" --path=/tmp/some\ dir %f
+Icon=escaped-exec-app

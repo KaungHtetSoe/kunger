@@ -182,3 +182,32 @@ still bounded (never hangs forever), just not maximally responsive. Callers need
 responsiveness should construct a `ProcessRunner` with a shorter `timeout`. Every
 `ProcessRunner` timeout used by a provider must stay shorter than that provider's
 `ScanContext::timeout` budget, per ADR-0007.
+
+---
+
+## ADR-0012 — Ownership-known desktop entries reuse their owning package's item id
+
+**Date:** 2026-08-01
+**Status:** Accepted
+
+**Context:** Providers run independently and don't share state during their own `scan()` call
+(ADR-0002) — but the original prompt tree requires the desktop-entry provider to "not duplicate
+an APT package as a separate manual application when ownership is known." Full cross-provider
+association is explicitly an Inventory Service (M4.1) responsibility
+(`docs/ARCHITECTURE.md` §2.4), which doesn't exist yet.
+
+**Decision:** When `DesktopProvider` resolves a `.desktop` file's owning package via `dpkg -S`,
+it emits that item with the _same_ id the APT provider uses for the same package
+(`apt:{package}`), `package_manager = PackageManager::Apt`, and leaves `category` as
+`Unclassified` (full classification is deferred until the item is merged with the owning
+package's richer evidence). When no owner is found, it emits a standalone item instead, with a
+`desktop:{filename}` id, `package_manager = PackageManager::Manual`, classified immediately via
+the classification engine using `has_desktop_launcher` + `Categories=` evidence.
+
+**Consequences:** The "don't duplicate" requirement is satisfied structurally (via a shared id
+that a future id-keyed merge in the inventory service will naturally converge) without the
+desktop provider needing to know anything about APT's internal state. This makes the inventory
+service's merge contract partly load-bearing already: M4.1 must merge same-id records from
+different providers (not just deduplicate identical ids), with a defined field-level merge
+strategy — this ADR is the reason that requirement exists, and M4.1's design should reference it
+rather than rediscover the need.

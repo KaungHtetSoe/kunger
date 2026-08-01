@@ -2,7 +2,6 @@
 //! standard locations and resolves their package ownership. See
 //! `docs/ARCHITECTURE.md` §2.2 and `docs/SECURITY.md`.
 
-mod ownership;
 mod parser;
 
 use std::collections::{HashMap, HashSet};
@@ -17,7 +16,8 @@ use crate::domain::{
     InstallationScope, PackageManager, ProviderInventory, ProviderStatus, ProviderWarning,
     SoftwareItem,
 };
-use crate::process::{CommandSpec, ProcessRunner};
+use crate::process::ProcessRunner;
+use crate::providers::dpkg_ownership;
 use crate::providers::{InventoryProvider, ProviderId, ProviderMetadata, ScanContext};
 
 const DESKTOP_PROVIDER_ID: ProviderId = ProviderId::new("desktop");
@@ -79,16 +79,8 @@ impl DesktopProvider {
         paths: &[PathBuf],
         warnings: &mut Vec<ProviderWarning>,
     ) -> HashMap<String, String> {
-        if paths.is_empty() {
-            return HashMap::new();
-        }
-
-        let spec = CommandSpec::new(&self.dpkg_bin)
-            .arg("-S")
-            .args(paths.iter().map(|p| p.to_string_lossy().into_owned()));
-
-        match self.runner.run_allow_any_exit(&spec).await {
-            Ok(output) => ownership::parse_dpkg_search(&output.stdout),
+        match dpkg_ownership::resolve_owners(&self.runner, &self.dpkg_bin, paths).await {
+            Ok(owners) => owners,
             Err(error) => {
                 warnings.push(ProviderWarning::new(format!(
                     "could not resolve desktop entry package ownership via dpkg -S ({error}); \

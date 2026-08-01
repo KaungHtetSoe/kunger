@@ -4,7 +4,9 @@
 
 pub mod apt;
 pub mod desktop;
+pub mod dpkg_ownership;
 pub mod flatpak;
+pub mod fonts;
 #[cfg(test)]
 pub mod mock;
 

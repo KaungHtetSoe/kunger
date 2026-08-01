@@ -1,7 +1,11 @@
-//! Parses `dpkg -S <path>...` output to resolve which package (if any)
-//! owns a given file path.
+//! Shared `dpkg -S` file-ownership resolution, used by any provider that
+//! needs to associate filesystem paths with an owning APT package (desktop
+//! entries, fonts, and future providers like AppImage/manual detection).
 
 use std::collections::HashMap;
+use std::path::PathBuf;
+
+use crate::process::{CommandSpec, ProcessRunner, RunError};
 
 /// Parses batched `dpkg -S` output into a map of file path to owning
 /// package name.
@@ -49,6 +53,29 @@ pub fn parse_dpkg_search(output: &str) -> HashMap<String, String> {
     }
 
     owners
+}
+
+/// Batched `dpkg -S` ownership lookup for a set of paths: one process call
+/// regardless of how many paths are given, never one call per path.
+/// Returns an empty map (not an error) for an empty `paths` slice, without
+/// running any command.
+pub async fn resolve_owners(
+    runner: &ProcessRunner,
+    dpkg_bin: &str,
+    paths: &[PathBuf],
+) -> Result<HashMap<String, String>, RunError> {
+    if paths.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let spec = CommandSpec::new(dpkg_bin)
+        .arg("-S")
+        .args(paths.iter().map(|p| p.to_string_lossy().into_owned()));
+
+    runner
+        .run_allow_any_exit(&spec)
+        .await
+        .map(|output| parse_dpkg_search(&output.stdout))
 }
 
 #[cfg(test)]
@@ -104,5 +131,25 @@ mod tests {
     #[test]
     fn empty_output_yields_an_empty_map() {
         assert!(parse_dpkg_search("").is_empty());
+    }
+
+    #[tokio::test]
+    async fn resolve_owners_with_no_paths_short_circuits_without_running_a_command() {
+        let runner = ProcessRunner::default();
+        let owners = resolve_owners(&runner, "kunger-nonexistent-dpkg-xyz", &[])
+            .await
+            .expect("should not error");
+
+        assert!(owners.is_empty());
+    }
+
+    #[tokio::test]
+    async fn resolve_owners_surfaces_a_run_error_when_dpkg_is_missing() {
+        let runner = ProcessRunner::default();
+        let paths = vec![PathBuf::from("/usr/share/applications/firefox.desktop")];
+
+        let result = resolve_owners(&runner, "kunger-nonexistent-dpkg-xyz", &paths).await;
+
+        assert!(matches!(result, Err(RunError::NotFound(_))));
     }
 }

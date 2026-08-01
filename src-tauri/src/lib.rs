@@ -4,6 +4,7 @@
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
 pub mod domain;
+pub mod providers;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

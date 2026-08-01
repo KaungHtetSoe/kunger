@@ -1,0 +1,4 @@
+org.example.Broken	Broken App	1.0	stable	x86_64
+	Empty App Id	1.0	stable	x86_64	flathub	10 MB
+org.example.BadSize	Bad Size App	1.0	stable	x86_64	flathub	notasize
+org.example.Good	Good App	2.0	stable	x86_64	flathub	5 MB

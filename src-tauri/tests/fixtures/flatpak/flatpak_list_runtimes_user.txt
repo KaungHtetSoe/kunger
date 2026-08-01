@@ -1,0 +1,2 @@
+org.gnome.Platform	GNOME Application Platform	45	45	x86_64	flathub	780 MB
+org.freedesktop.Platform.GL.default	Mesa	-	23.08	x86_64	flathub	120 MB

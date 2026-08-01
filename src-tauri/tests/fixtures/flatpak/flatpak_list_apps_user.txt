@@ -1,0 +1,2 @@
+org.mozilla.firefox	Firefox	129.0	stable	x86_64	flathub	312.5 MB
+org.gimp.GIMP	GIMP	2.10.36	stable	x86_64	flathub	450 MB

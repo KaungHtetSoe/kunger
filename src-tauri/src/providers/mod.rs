@@ -8,6 +8,7 @@ pub mod desktop;
 pub mod dpkg_ownership;
 pub mod flatpak;
 pub mod fonts;
+pub mod manual;
 #[cfg(test)]
 pub mod mock;
 

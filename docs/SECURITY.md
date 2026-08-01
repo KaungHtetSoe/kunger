@@ -59,10 +59,19 @@ an unbounded directory tree.
 
 ## 4. Manual software provider — specific scope limitation
 
-The manual-software provider (`providers/manual/`) only inspects the bounded directories listed
-in §2, checks whether a known provider (dpkg) already owns a given path before classifying it as
-manual, and only reports metadata about executables/libraries/directories — never file contents.
-It does not inspect arbitrary user directories, and it is not a general-purpose file scanner.
+The manual-software provider (`providers/manual/`) only inspects `/opt`, `/usr/local/bin`,
+`/usr/local/lib`, and `~/.local/bin`, checks whether a known provider (dpkg) already owns a
+given path before classifying it as manual, and only reports metadata about
+executables/libraries/directories — never file contents. `/opt` entries are captured as whole
+top-level directories and never descended into. It does not inspect arbitrary user directories,
+and it is not a general-purpose file scanner.
+
+It deliberately does **not** scan `~/.local/share/applications`, even though earlier planning
+material listed it in this provider's scope: the desktop-entry provider already fully owns that
+directory (parsing, ownership resolution, classification), so a second, cruder pass over the
+same `.desktop` files here would only produce confusing duplicate records for the same file, not
+new information. It also skips `.AppImage`-extension files in the bin directories it scans,
+leaving those to the AppImage provider.
 
 ## 5. Known risk areas to review before release
 

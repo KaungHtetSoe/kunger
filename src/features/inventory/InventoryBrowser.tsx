@@ -10,6 +10,7 @@ import { GroupedList } from "@/features/inventory/GroupedList";
 import { PaginationControls } from "@/features/inventory/PaginationControls";
 import { SoftwareTable } from "@/features/inventory/SoftwareTable";
 import { ViewModeToggle, type ViewMode } from "@/features/inventory/ViewModeToggle";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 import { useSoftwareItems } from "@/hooks/useSoftwareItems";
 import type { SortDirection, SortField } from "@/types/commands";
@@ -17,6 +18,7 @@ import type { SoftwareCategory } from "@/types/domain";
 
 const TABLE_PAGE_SIZE = 50;
 const GROUPED_PAGE_SIZE = 500;
+const SEARCH_DEBOUNCE_MS = 250;
 
 interface InventoryBrowserProps {
   title: string;
@@ -33,6 +35,7 @@ export function InventoryBrowser({
   initialSearch,
 }: InventoryBrowserProps) {
   const [search, setSearch] = useState(initialSearch ?? "");
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
   const [filters, setFilters] = useState<InventoryFilters>(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState<SortField>("displayName");
   const [sortDirection, setSortDirection] = useState<SortDirection>("ascending");
@@ -47,7 +50,7 @@ export function InventoryBrowser({
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useSoftwareItems({
     page: viewMode === "table" ? page : 1,
     pageSize,
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     categories: fixedCategories,
     packageManagers: filters.packageManagers.length ? filters.packageManagers : undefined,
     scopes: filters.scopes.length ? filters.scopes : undefined,

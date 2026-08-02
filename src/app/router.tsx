@@ -7,6 +7,7 @@ import { InventoryCategoryPage } from "@/pages/InventoryCategoryPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProvidersPage } from "@/pages/ProvidersPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { SoftwareDetailsPage } from "@/pages/SoftwareDetailsPage";
 
 // Hash routing avoids relying on server-side URL rewrites: Tauri serves
 // the frontend as static assets with no server to rewrite deep-linked
@@ -19,6 +20,7 @@ export const router = createHashRouter([
       { index: true, element: <DashboardPage /> },
       { path: "inventory", element: <InventoryCategoryPage /> },
       { path: "inventory/:category", element: <InventoryCategoryPage /> },
+      { path: "software/:id", element: <SoftwareDetailsPage /> },
       { path: "duplicates", element: <DuplicatesPage /> },
       { path: "providers", element: <ProvidersPage /> },
       { path: "settings", element: <SettingsPage /> },

@@ -41,7 +41,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [x] **M4.4** — Tauri IPC command layer + typed frontend service
 - [x] **M4.5a** — Frontend application shell (sidebar, top bar, routing, notifications, scan/provider status indicators)
 - [x] **M4.5b** — Dashboard (scan summary stats, Scan System button, live progress)
-- [ ] **M4.5c** — Inventory browser (table, category/manager/scope filters, sort, pagination)
+- [x] **M4.5c** — Inventory browser (table, category/manager/scope filters, sort, pagination)
 - [ ] **M4.5d** — Software details view
 - [ ] **M4.5e** — Search and filters (full wiring of the global search box)
 - [ ] **M4.6** — Export (JSON/YAML/CSV, full inventory + reinstallation manifest)

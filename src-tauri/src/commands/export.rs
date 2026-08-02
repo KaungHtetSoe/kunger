@@ -1,19 +1,21 @@
 //! `export_inventory`.
 //!
-//! Implements the full technical inventory export (JSON/YAML/CSV) for the
-//! latest scan. The reinstallation-manifest export mode is a separate,
-//! larger feature (Prompt 09F / M4.6) with its own frontend workflow and
-//! is deliberately not implemented here — this command's job is just to
-//! give the IPC surface a real, working export capability now.
+//! Implements both export modes (JSON/YAML/CSV in each): the full technical
+//! inventory dump, and the reinstallation manifest, which separates items
+//! Kunger can point a package manager at by name from items it can only
+//! flag for manual review (product spec FR-11).
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::Utc;
 use serde::Serialize;
 
-use crate::domain::SoftwareItem;
+use crate::domain::{InstallationReason, PackageManager, SoftwareItem};
 
-use super::{run_blocking, AppState, CommandError, ExportFormat, ExportRequest, ExportResponse};
+use super::{
+    run_blocking, AppState, CommandError, ExportFormat, ExportMode, ExportRequest, ExportResponse,
+};
 
 const EXPORT_SCHEMA_VERSION: u32 = 1;
 
@@ -33,10 +35,11 @@ pub async fn export_inventory_impl(
     let repository = Arc::clone(&state.repository);
     let items = run_blocking(move || repository.latest_items()).await?;
 
-    let content = match request.format {
-        ExportFormat::Json => export_json(&items)?,
-        ExportFormat::Yaml => export_yaml(&items)?,
-        ExportFormat::Csv => export_csv(&items)?,
+    let content = match (request.mode, request.format) {
+        (ExportMode::Full, ExportFormat::Json) => export_json(&items)?,
+        (ExportMode::Full, ExportFormat::Yaml) => export_yaml(&items)?,
+        (ExportMode::Full, ExportFormat::Csv) => export_csv(&items)?,
+        (ExportMode::ReinstallationManifest, format) => export_manifest(&items, format)?,
     };
 
     Ok(ExportResponse {
@@ -115,6 +118,210 @@ fn export_csv(items: &[SoftwareItem]) -> Result<String, CommandError> {
         .map_err(|e| CommandError::internal(format!("CSV export was not valid UTF-8: {e}")))
 }
 
+/// Package managers Kunger can point at a package name to reinstall
+/// non-interactively. Order here is the order groups appear in the manifest.
+const REPRODUCIBLE_MANAGERS: &[PackageManager] = &[
+    PackageManager::Apt,
+    PackageManager::Flatpak,
+    PackageManager::Snap,
+    PackageManager::Pip,
+    PackageManager::Pipx,
+    PackageManager::Npm,
+    PackageManager::Cargo,
+];
+
+fn install_hint(manager: PackageManager) -> &'static str {
+    match manager {
+        PackageManager::Apt => "sudo apt install <package names>",
+        PackageManager::Flatpak => "flatpak install <package names>",
+        PackageManager::Snap => "sudo snap install <package names>",
+        PackageManager::Pip => "pip install <package names>",
+        PackageManager::Pipx => "pipx install <package names>",
+        PackageManager::Npm => "npm install -g <package names>",
+        PackageManager::Cargo => "cargo install <package names>",
+        PackageManager::AppImage | PackageManager::Manual | PackageManager::Unknown => {
+            "no automatic install command"
+        }
+    }
+}
+
+fn manual_review_reason(item: &SoftwareItem) -> String {
+    match item.package_manager {
+        PackageManager::AppImage => {
+            "AppImage bundle -- no package registry entry; keep or re-download the file manually."
+                .to_string()
+        }
+        PackageManager::Manual => {
+            "Found in a local bin/lib/opt directory with no owning package manager; review manually."
+                .to_string()
+        }
+        _ => "Kunger could not determine a package manager for this item; review manually."
+            .to_string(),
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReinstallManifest {
+    schema_version: u32,
+    exported_at: chrono::DateTime<Utc>,
+    /// Items whose package manager can reinstall them by name -- run each
+    /// group's `installHint` with its `packages` substituted in.
+    reproducible: Vec<ReproducibleGroup>,
+    /// Items Kunger cannot automatically reproduce (see `docs/PRODUCT_SPEC.md`
+    /// FR-11). Installation paths are included here, and may contain the
+    /// user's home directory / username -- the export UI discloses this.
+    manual_review: Vec<ManualReviewItem>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReproducibleGroup {
+    package_manager: PackageManager,
+    install_hint: String,
+    packages: Vec<ReproduciblePackage>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReproduciblePackage {
+    package_name: String,
+    display_name: String,
+    version: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ManualReviewItem {
+    id: String,
+    display_name: String,
+    package_manager: PackageManager,
+    reason: String,
+    paths: Vec<String>,
+}
+
+/// Items installed automatically as a dependency are left out of the
+/// manifest entirely: reinstalling the manually-chosen packages in
+/// `reproducible` pulls them back in via normal dependency resolution, so
+/// listing them separately would just be noise.
+fn build_manifest(items: &[SoftwareItem]) -> ReinstallManifest {
+    let mut grouped: HashMap<PackageManager, Vec<ReproduciblePackage>> = HashMap::new();
+    let mut manual_review = Vec::new();
+
+    for item in items {
+        if item.installation_reason == InstallationReason::Automatic {
+            continue;
+        }
+
+        if REPRODUCIBLE_MANAGERS.contains(&item.package_manager) {
+            grouped
+                .entry(item.package_manager)
+                .or_default()
+                .push(ReproduciblePackage {
+                    package_name: item.package_name.clone(),
+                    display_name: item.display_name.clone(),
+                    version: item.version.clone(),
+                });
+        } else {
+            manual_review.push(ManualReviewItem {
+                id: item.id.clone(),
+                display_name: item.display_name.clone(),
+                package_manager: item.package_manager,
+                reason: manual_review_reason(item),
+                paths: item.install_paths.clone(),
+            });
+        }
+    }
+
+    let reproducible = REPRODUCIBLE_MANAGERS
+        .iter()
+        .filter_map(|manager| {
+            grouped.remove(manager).map(|mut packages| {
+                packages.sort_by(|a, b| a.package_name.cmp(&b.package_name));
+                ReproducibleGroup {
+                    package_manager: *manager,
+                    install_hint: install_hint(*manager).to_string(),
+                    packages,
+                }
+            })
+        })
+        .collect();
+
+    manual_review.sort_by(|a, b| a.display_name.cmp(&b.display_name));
+
+    ReinstallManifest {
+        schema_version: EXPORT_SCHEMA_VERSION,
+        exported_at: Utc::now(),
+        reproducible,
+        manual_review,
+    }
+}
+
+fn export_manifest(items: &[SoftwareItem], format: ExportFormat) -> Result<String, CommandError> {
+    let manifest = build_manifest(items);
+    match format {
+        ExportFormat::Json => serde_json::to_string_pretty(&manifest)
+            .map_err(|e| CommandError::internal(format!("failed to serialize manifest: {e}"))),
+        ExportFormat::Yaml => serde_yaml::to_string(&manifest)
+            .map_err(|e| CommandError::internal(format!("failed to serialize manifest: {e}"))),
+        ExportFormat::Csv => export_manifest_csv(&manifest),
+    }
+}
+
+fn export_manifest_csv(manifest: &ReinstallManifest) -> Result<String, CommandError> {
+    let mut writer = csv::Writer::from_writer(Vec::new());
+
+    writer
+        .write_record([
+            "reproducible",
+            "packageManager",
+            "packageName",
+            "displayName",
+            "version",
+            "paths",
+            "reason",
+        ])
+        .map_err(|e| CommandError::internal(format!("failed to write CSV header: {e}")))?;
+
+    for group in &manifest.reproducible {
+        for package in &group.packages {
+            writer
+                .write_record([
+                    "yes",
+                    &format!("{:?}", group.package_manager),
+                    package.package_name.as_str(),
+                    package.display_name.as_str(),
+                    package.version.as_deref().unwrap_or(""),
+                    "",
+                    &group.install_hint,
+                ])
+                .map_err(|e| CommandError::internal(format!("failed to write CSV row: {e}")))?;
+        }
+    }
+
+    for item in &manifest.manual_review {
+        writer
+            .write_record([
+                "no",
+                &format!("{:?}", item.package_manager),
+                "",
+                item.display_name.as_str(),
+                "",
+                &item.paths.join("; "),
+                &item.reason,
+            ])
+            .map_err(|e| {
+                CommandError::internal(format!("failed to write CSV row for {}: {e}", item.id))
+            })?;
+    }
+
+    let bytes = writer
+        .into_inner()
+        .map_err(|e| CommandError::internal(format!("failed to finalize CSV export: {e}")))?;
+    String::from_utf8(bytes)
+        .map_err(|e| CommandError::internal(format!("manifest CSV was not valid UTF-8: {e}")))
+}
+
 #[tauri::command]
 pub async fn export_inventory(
     state: tauri::State<'_, Arc<AppState>>,
@@ -134,10 +341,9 @@ mod tests {
     use crate::providers::mock::MockInventoryProvider;
     use std::time::Duration;
 
-    async fn state_with_one_item() -> AppState {
-        let item = SoftwareItem::new("apt:git", "git", "Git", PackageManager::Apt);
+    async fn state_with_items(items: Vec<SoftwareItem>) -> AppState {
         let state = Arc::new(test_state(vec![Box::new(
-            MockInventoryProvider::new("apt").with_items(vec![item]),
+            MockInventoryProvider::new("apt").with_items(items),
         )]));
         start_inventory_scan_impl(
             Arc::clone(&state),
@@ -151,18 +357,37 @@ mod tests {
             .unwrap_or_else(|arc| panic!("state still has {} refs", Arc::strong_count(&arc)))
     }
 
+    async fn state_with_one_item() -> AppState {
+        state_with_items(vec![SoftwareItem::new(
+            "apt:git",
+            "git",
+            "Git",
+            PackageManager::Apt,
+        )])
+        .await
+    }
+
+    fn full_request(format: ExportFormat) -> ExportRequest {
+        ExportRequest {
+            format,
+            mode: ExportMode::Full,
+        }
+    }
+
+    fn manifest_request(format: ExportFormat) -> ExportRequest {
+        ExportRequest {
+            format,
+            mode: ExportMode::ReinstallationManifest,
+        }
+    }
+
     #[tokio::test]
     async fn json_export_round_trips_item_data() {
         let state = state_with_one_item().await;
 
-        let response = export_inventory_impl(
-            &state,
-            ExportRequest {
-                format: ExportFormat::Json,
-            },
-        )
-        .await
-        .expect("export");
+        let response = export_inventory_impl(&state, full_request(ExportFormat::Json))
+            .await
+            .expect("export");
 
         assert_eq!(response.schema_version, EXPORT_SCHEMA_VERSION);
         assert!(response.content.contains("\"id\": \"apt:git\""));
@@ -172,14 +397,9 @@ mod tests {
     async fn yaml_export_contains_the_item() {
         let state = state_with_one_item().await;
 
-        let response = export_inventory_impl(
-            &state,
-            ExportRequest {
-                format: ExportFormat::Yaml,
-            },
-        )
-        .await
-        .expect("export");
+        let response = export_inventory_impl(&state, full_request(ExportFormat::Yaml))
+            .await
+            .expect("export");
 
         assert!(response.content.contains("apt:git"));
     }
@@ -188,14 +408,9 @@ mod tests {
     async fn csv_export_has_a_header_and_one_data_row() {
         let state = state_with_one_item().await;
 
-        let response = export_inventory_impl(
-            &state,
-            ExportRequest {
-                format: ExportFormat::Csv,
-            },
-        )
-        .await
-        .expect("export");
+        let response = export_inventory_impl(&state, full_request(ExportFormat::Csv))
+            .await
+            .expect("export");
 
         let lines: Vec<&str> = response.content.lines().collect();
         assert_eq!(lines.len(), 2);
@@ -207,15 +422,97 @@ mod tests {
     async fn export_with_no_scanned_items_still_produces_valid_output() {
         let state = test_state(vec![]);
 
-        let response = export_inventory_impl(
-            &state,
-            ExportRequest {
-                format: ExportFormat::Json,
-            },
-        )
-        .await
-        .expect("export");
+        let response = export_inventory_impl(&state, full_request(ExportFormat::Json))
+            .await
+            .expect("export");
 
         assert!(response.content.contains("\"itemCount\": 0"));
+    }
+
+    fn manifest_fixture_items() -> Vec<SoftwareItem> {
+        let mut manual_apt =
+            SoftwareItem::new("apt:ripgrep", "ripgrep", "ripgrep", PackageManager::Apt);
+        manual_apt.installation_reason = InstallationReason::Manual;
+        manual_apt.version = Some("14.1.0".to_string());
+
+        let mut auto_apt = SoftwareItem::new("apt:libc6", "libc6", "libc6", PackageManager::Apt);
+        auto_apt.installation_reason = InstallationReason::Automatic;
+
+        let mut manual_local = SoftwareItem::new(
+            "manual:/usr/local/bin/mytool",
+            "mytool",
+            "mytool",
+            PackageManager::Manual,
+        );
+        manual_local.install_paths = vec!["/home/alice/.local/bin/mytool".to_string()];
+
+        let mut appimage = SoftwareItem::new(
+            "appimage:/opt/App.AppImage",
+            "App",
+            "App",
+            PackageManager::AppImage,
+        );
+        appimage.install_paths = vec!["/opt/App.AppImage".to_string()];
+
+        vec![manual_apt, auto_apt, manual_local, appimage]
+    }
+
+    #[tokio::test]
+    async fn manifest_json_separates_reproducible_from_manual_review_and_drops_automatic_deps() {
+        let state = state_with_items(manifest_fixture_items()).await;
+
+        let response = export_inventory_impl(&state, manifest_request(ExportFormat::Json))
+            .await
+            .expect("export");
+
+        assert!(response.content.contains("ripgrep"));
+        assert!(response.content.contains("sudo apt install"));
+        assert!(response.content.contains("mytool"));
+        assert!(response.content.contains("/home/alice/.local/bin/mytool"));
+        assert!(response.content.contains("App.AppImage") || response.content.contains("\"App\""));
+        // libc6 was installed automatically as a dependency -- it must not
+        // appear anywhere in the manifest.
+        assert!(!response.content.contains("libc6"));
+    }
+
+    #[tokio::test]
+    async fn manifest_yaml_contains_both_sections() {
+        let state = state_with_items(manifest_fixture_items()).await;
+
+        let response = export_inventory_impl(&state, manifest_request(ExportFormat::Yaml))
+            .await
+            .expect("export");
+
+        assert!(response.content.contains("reproducible:"));
+        assert!(response.content.contains("manualReview:"));
+    }
+
+    #[tokio::test]
+    async fn manifest_csv_marks_each_row_reproducible_or_not() {
+        let state = state_with_items(manifest_fixture_items()).await;
+
+        let response = export_inventory_impl(&state, manifest_request(ExportFormat::Csv))
+            .await
+            .expect("export");
+
+        let lines: Vec<&str> = response.content.lines().collect();
+        // header + 1 reproducible (ripgrep) + 2 manual-review (mytool, App) -- libc6 excluded.
+        assert_eq!(lines.len(), 4);
+        assert!(lines[0].starts_with("reproducible,packageManager"));
+        assert!(lines.iter().any(|line| line.starts_with("yes,Apt,ripgrep")));
+        assert!(lines.iter().any(|line| line.starts_with("no,Manual,")));
+        assert!(!response.content.contains("libc6"));
+    }
+
+    #[tokio::test]
+    async fn manifest_with_no_items_still_produces_valid_output() {
+        let state = test_state(vec![]);
+
+        let response = export_inventory_impl(&state, manifest_request(ExportFormat::Json))
+            .await
+            .expect("export");
+
+        assert!(response.content.contains("\"reproducible\": []"));
+        assert!(response.content.contains("\"manualReview\": []"));
     }
 }

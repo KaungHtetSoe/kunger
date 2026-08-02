@@ -4,6 +4,7 @@ import {
   Code2,
   Copy,
   Cpu,
+  Download,
   HelpCircle,
   LayoutDashboard,
   Library,
@@ -75,6 +76,7 @@ export const NAV_ITEMS: NavItem[] = [
     categories: ["unclassified"],
   },
   { label: "Duplicates", to: "/duplicates", icon: Copy },
+  { label: "Export", to: "/export", icon: Download },
   { label: "Providers", to: "/providers", icon: Plug },
   { label: "Settings", to: "/settings", icon: SettingsIcon },
 ];

@@ -107,6 +107,8 @@ pub struct ProviderWarningsResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ExportRequest {
     pub format: ExportFormat,
+    #[serde(default)]
+    pub mode: ExportMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,6 +117,19 @@ pub enum ExportFormat {
     Json,
     Yaml,
     Csv,
+}
+
+/// `full` dumps every scanned field for every item, verbatim. `reinstallationManifest`
+/// instead answers "what do I run to get this back" -- it groups items whose package
+/// manager supports non-interactive reinstall by name (apt/flatpak/snap/pip/pipx/npm/
+/// cargo) separately from items Kunger cannot automatically reproduce (manual/AppImage/
+/// unknown-manager finds), per product spec FR-11.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum ExportMode {
+    #[default]
+    Full,
+    ReinstallationManifest,
 }
 
 #[derive(Debug, Clone, Serialize)]

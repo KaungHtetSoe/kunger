@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
+import { Badge } from "@/components/Badge";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
-import { Badge, ConfidenceBadge, RiskBadge } from "@/features/software-details/Badge";
+import { ConfidenceBadge, RiskBadge } from "@/features/software-details/Badge";
 import { CollapsibleList } from "@/features/software-details/CollapsibleList";
 import { DuplicateBanner } from "@/features/software-details/DuplicateBanner";
 import { Field, Section } from "@/features/software-details/Section";

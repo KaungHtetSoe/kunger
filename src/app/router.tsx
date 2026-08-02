@@ -3,6 +3,7 @@ import { createHashRouter } from "react-router-dom";
 import { AppShell } from "@/app/AppShell";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DuplicatesPage } from "@/pages/DuplicatesPage";
+import { ExportPage } from "@/pages/ExportPage";
 import { InventoryCategoryPage } from "@/pages/InventoryCategoryPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProvidersPage } from "@/pages/ProvidersPage";
@@ -22,6 +23,7 @@ export const router = createHashRouter([
       { path: "inventory/:category", element: <InventoryCategoryPage /> },
       { path: "software/:id", element: <SoftwareDetailsPage /> },
       { path: "duplicates", element: <DuplicatesPage /> },
+      { path: "export", element: <ExportPage /> },
       { path: "providers", element: <ProvidersPage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "*", element: <NotFoundPage /> },

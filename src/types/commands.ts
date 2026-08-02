@@ -71,14 +71,50 @@ export interface ProviderWarningsResponse {
 
 export type ExportFormat = "json" | "yaml" | "csv";
 
+/**
+ * `full` dumps every scanned field verbatim. `reinstallationManifest`
+ * instead separates items whose package manager can reinstall them by name
+ * from items Kunger can only flag for manual review (product spec FR-11).
+ */
+export type ExportMode = "full" | "reinstallationManifest";
+
 export interface ExportRequest {
   format: ExportFormat;
+  mode?: ExportMode;
 }
 
 export interface ExportResponse {
   schemaVersion: number;
   format: ExportFormat;
   content: string;
+}
+
+/** Mirrors `commands::export::ReinstallManifest` (only reachable when `mode: "reinstallationManifest"`). */
+export interface ReinstallManifest {
+  schemaVersion: number;
+  exportedAt: string;
+  reproducible: ReproducibleGroup[];
+  manualReview: ManualReviewItem[];
+}
+
+export interface ReproducibleGroup {
+  packageManager: PackageManager;
+  installHint: string;
+  packages: ReproduciblePackage[];
+}
+
+export interface ReproduciblePackage {
+  packageName: string;
+  displayName: string;
+  version: string | null;
+}
+
+export interface ManualReviewItem {
+  id: string;
+  displayName: string;
+  packageManager: PackageManager;
+  reason: string;
+  paths: string[];
 }
 
 /**

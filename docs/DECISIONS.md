@@ -346,3 +346,42 @@ not a re-exported flat path; this tripped up the first implementation attempt an
 here so it isn't rediscovered. Capability/ACL entries for these custom commands
 (`capabilities/default.json`) are deferred to M4.5+, once the frontend actually calls them and
 any permission errors can be diagnosed against a real `invoke()`.
+
+## ADR-0016 — Reinstallation manifest structure; downloads via a Blob/anchor pattern, not a Tauri plugin
+
+**Date:** 2026-08-02
+**Status:** Accepted
+
+**Context:** M4.6 needed to implement the reinstallation-manifest export mode ADR-0015 deferred,
+plus a way for the frontend to actually get exported content onto disk. Product spec FR-11
+requires the manifest to clearly separate what Kunger can vs. cannot automatically reproduce.
+
+**Decision:**
+
+- `ExportRequest` gained a `mode: full | reinstallationManifest` field (`#[serde(default)]` to
+  `full`, so every pre-M4.6 caller keeps working unchanged). `export_inventory` branches on
+  `(mode, format)`.
+- The manifest mode groups items by whether their package manager supports non-interactive
+  reinstall by name (apt/flatpak/snap/pip/pipx/npm/cargo) into a `reproducible` section — each
+  group carries a plain-English `installHint` — versus everything else (manual finds, AppImages,
+  unknown-manager items) into a `manualReview` section with the reason and install paths. Items
+  with `installationReason == Automatic` are dropped entirely rather than placed in either
+  section: reinstalling the manually-chosen packages pulls dependencies back in on its own, so
+  listing them would just be noise the user has to read past.
+- CSV manifest output is a single flat table (`reproducible` yes/no column) rather than two
+  separate CSVs, so the format stays consistent with the full-export CSV (one file per export)
+  and still opens cleanly in a spreadsheet.
+- The frontend downloads exported content via `Blob` + a temporary `<a download>` element
+  (`src/utils/download.ts`), not a `@tauri-apps/plugin-dialog`/`plugin-fs` save dialog. This
+  avoids adding a new Tauri capability/permission surface and native dependency for what the
+  WebView already does natively; the tradeoff is the user gets their WebView's default download
+  behavior (typically straight to `~/Downloads`) instead of a native "Save As" location picker.
+  Revisit if user feedback wants the picker.
+- The export UI shows a persistent privacy notice that installation paths may contain the user's
+  home directory/username (`docs/SECURITY.md` §3, product spec FR-11) rather than only mentioning
+  it in documentation the user may never open.
+
+**Consequences:** `export_inventory`'s test suite grew from 4 to 8 cases (JSON/YAML/CSV × full
+vs. manifest, plus an empty-scan case for each mode). The manifest's on-page preview
+(`ManifestPreview`) always fetches in JSON regardless of the format the user will eventually
+download, so switching formats doesn't require a second round-trip just to re-render the preview.

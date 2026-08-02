@@ -132,6 +132,23 @@ mod tests {
     use crate::domain::SoftwareItem;
     use crate::providers::mock::MockInventoryProvider;
 
+    /// Polls instead of guessing a fixed sleep duration -- a fixed sleep
+    /// here was flaky on real CI runners (slower/more contended than this
+    /// was developed and passing on), surfacing as an intermittent status
+    /// check racing the background scan task's persistence write.
+    async fn wait_until_idle(state: &AppState) {
+        for _ in 0..500 {
+            if matches!(
+                get_scan_status_impl(state).await.expect("status"),
+                ScanStatusResponse::Idle { .. }
+            ) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        panic!("scan did not reach Idle in time");
+    }
+
     #[tokio::test]
     async fn rejects_a_zero_timeout() {
         let state = Arc::new(test_state(vec![]));
@@ -221,9 +238,7 @@ mod tests {
             .await
             .expect("scan starts");
 
-        // The scan itself runs in a spawned task; give it a moment to
-        // finish and persist before checking status.
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        wait_until_idle(&state).await;
 
         let status = get_scan_status_impl(&state).await.expect("status");
         match status {
@@ -247,7 +262,7 @@ mod tests {
 
         cancel_inventory_scan_impl(&state).expect("cancel");
 
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        wait_until_idle(&state).await;
 
         let status = get_scan_status_impl(&state).await.expect("status");
         assert!(matches!(status, ScanStatusResponse::Idle { .. }));

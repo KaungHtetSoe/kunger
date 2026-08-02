@@ -348,28 +348,15 @@ pub async fn export_inventory(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::events::NoopScanEventEmitter;
-    use crate::commands::scan::start_inventory_scan_impl;
-    use crate::commands::test_support::test_state;
-    use crate::commands::StartScanRequest;
+    use crate::commands::test_support::{state_after_scan, test_state};
     use crate::domain::PackageManager;
     use crate::providers::mock::MockInventoryProvider;
-    use std::time::Duration;
 
     async fn state_with_items(items: Vec<SoftwareItem>) -> AppState {
-        let state = Arc::new(test_state(vec![Box::new(
+        state_after_scan(vec![Box::new(
             MockInventoryProvider::new("apt").with_items(items),
-        )]));
-        start_inventory_scan_impl(
-            Arc::clone(&state),
-            Arc::new(NoopScanEventEmitter),
-            StartScanRequest::default(),
-        )
+        )])
         .await
-        .expect("scan starts");
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        Arc::try_unwrap(state)
-            .unwrap_or_else(|arc| panic!("state still has {} refs", Arc::strong_count(&arc)))
     }
 
     async fn state_with_one_item() -> AppState {

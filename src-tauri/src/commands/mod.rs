@@ -140,12 +140,15 @@ where
 
 #[cfg(test)]
 pub(crate) mod test_support {
-    use super::AppState;
+    use super::events::NoopScanEventEmitter;
+    use super::scan::{get_scan_status_impl, start_inventory_scan_impl};
+    use super::{AppState, ScanStatusResponse, StartScanRequest};
     use crate::inventory::InventoryService;
     use crate::persistence::{db, SqliteScanRepository};
     use crate::providers::InventoryProvider;
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::Arc;
+    use std::time::Duration;
 
     static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -161,6 +164,40 @@ pub(crate) mod test_support {
         let conn = db::open(&path).expect("open test db");
         let repository = Arc::new(SqliteScanRepository::new(conn));
         AppState::new(InventoryService::new(providers), repository)
+    }
+
+    /// Runs a scan against `providers` and waits for it to actually reach
+    /// `Idle` (persisted) before returning, instead of guessing at a sleep
+    /// duration. A fixed `sleep(100ms)` here was flaky under CI load — real
+    /// GitHub Actions runners are slower/more contended than the sandbox
+    /// this was originally written and passing in, and a persisted scan of
+    /// more than a handful of items routinely took longer than 100ms,
+    /// leaving the background scan task still holding its `Arc<AppState>`
+    /// clone when the caller tried `Arc::try_unwrap` (surfaced as
+    /// intermittent "state still has 2 refs" panics — never reproduced
+    /// locally, only on CI, which is exactly why a poll beats a guess).
+    pub async fn state_after_scan(providers: Vec<Box<dyn InventoryProvider>>) -> AppState {
+        let state = Arc::new(test_state(providers));
+        start_inventory_scan_impl(
+            Arc::clone(&state),
+            Arc::new(NoopScanEventEmitter),
+            StartScanRequest::default(),
+        )
+        .await
+        .expect("scan starts");
+
+        for _ in 0..500 {
+            if matches!(
+                get_scan_status_impl(&state).await.expect("status"),
+                ScanStatusResponse::Idle { .. }
+            ) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+
+        Arc::try_unwrap(state)
+            .unwrap_or_else(|arc| panic!("state still has {} refs", Arc::strong_count(&arc)))
     }
 
     fn fastrand_ish() -> u64 {

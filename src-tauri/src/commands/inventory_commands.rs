@@ -256,15 +256,11 @@ pub async fn rebuild_cache(state: tauri::State<'_, Arc<AppState>>) -> Result<(),
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::events::NoopScanEventEmitter;
-    use crate::commands::scan::start_inventory_scan_impl;
-    use crate::commands::test_support::test_state;
-    use crate::commands::StartScanRequest;
+    use crate::commands::test_support::{state_after_scan, test_state};
     use crate::domain::{
         ClassificationConfidence, InstallationScope, PackageManager, SoftwareCategory,
     };
     use crate::providers::mock::MockInventoryProvider;
-    use std::time::Duration;
 
     fn item(
         id: &str,
@@ -278,19 +274,10 @@ mod tests {
     }
 
     async fn state_with_scanned_items(items: Vec<SoftwareItem>) -> AppState {
-        let state = Arc::new(test_state(vec![Box::new(
+        state_after_scan(vec![Box::new(
             MockInventoryProvider::new("apt").with_items(items),
-        )]));
-        start_inventory_scan_impl(
-            Arc::clone(&state),
-            Arc::new(NoopScanEventEmitter),
-            StartScanRequest::default(),
-        )
+        )])
         .await
-        .expect("scan starts");
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        Arc::try_unwrap(state)
-            .unwrap_or_else(|arc| panic!("state still has {} refs", Arc::strong_count(&arc)))
     }
 
     #[tokio::test]
@@ -607,40 +594,15 @@ mod tests {
     /// not guesses.
     mod performance {
         use super::*;
-        use crate::commands::scan::get_scan_status_impl;
-        use crate::commands::ScanStatusResponse;
         use std::time::Instant;
 
         const SYNTHETIC_ITEM_COUNT: usize = 5000;
 
-        /// `state_with_scanned_items`'s fixed 100ms sleep is tuned for the
-        /// handful of items most tests seed and isn't long enough for a
-        /// scan+persist of thousands of synthetic items to finish -- poll
-        /// scan status instead of guessing a sleep duration.
         async fn state_with_large_scan(items: Vec<SoftwareItem>) -> AppState {
-            let state = Arc::new(test_state(vec![Box::new(
+            state_after_scan(vec![Box::new(
                 MockInventoryProvider::new("apt").with_items(items),
-            )]));
-            start_inventory_scan_impl(
-                Arc::clone(&state),
-                Arc::new(NoopScanEventEmitter),
-                StartScanRequest::default(),
-            )
+            )])
             .await
-            .expect("scan starts");
-
-            for _ in 0..500 {
-                if matches!(
-                    get_scan_status_impl(&state).await.expect("status"),
-                    ScanStatusResponse::Idle { .. }
-                ) {
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(20)).await;
-            }
-
-            Arc::try_unwrap(state)
-                .unwrap_or_else(|arc| panic!("state still has {} refs", Arc::strong_count(&arc)))
         }
 
         fn synthetic_items(count: usize) -> Vec<SoftwareItem> {

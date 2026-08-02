@@ -26,6 +26,8 @@ jobs:
             build-essential \
             libssl-dev \
             libxdo-dev \
+            libdbus-1-dev \
+            pkg-config \
             file
 
       - name: Install Rust toolchain

@@ -24,6 +24,14 @@ practical consequences:
 - **Before trusting this in production, run it on a real Debian or Ubuntu system and compare its
   APT/Flatpak counts against `dpkg -l`/`flatpak list` directly.** This is the single most
   important verification step this release has not had.
+- **Update:** a first real Debian build attempt (post-release, outside this sandbox) immediately
+  hit exactly the kind of gap this section warned about — the build failed on
+  `libdbus-sys`/`pkg-config: dbus-1 not found`, because `libdbus-1-dev` (a transitive requirement
+  of Tauri's `tao` windowing crate on Linux) was missing from every prerequisites list in this
+  repo (README, CI workflows). Fixed — see `README.md`'s Development section and both
+  `.github/workflows/*.yml` — but flagged here as a concrete instance of "never verified against
+  real Linux" turning up a real gap on the very first attempt. The provider-output comparison
+  above (APT/Flatpak counts vs. `dpkg -l`/`flatpak list`) still hasn't happened.
 
 ## UI automation gap
 
@@ -70,15 +78,20 @@ the user pick a location up front. Deliberate tradeoff to avoid adding a new Tau
 plugin/capability surface for a single feature — see ADR-0016. Revisit if user feedback wants a
 location picker.
 
-## CI/CD pipelines are unverified end-to-end
+## Release packaging pipeline is still unverified end-to-end
 
-`.github/workflows/ci.yml` and `release.yml` (M5.4) parse as valid YAML and were reasoned through
-against Tauri's documented Ubuntu build dependencies, but this repository has no GitHub remote
-configured, so neither workflow has actually run on GitHub's infrastructure. **The first push to
-a real GitHub repository should be treated as this pipeline's real first test**, not as a
-formality — particularly the AppImage/.deb bundling step in `release.yml`, which needs Linux
-packaging tools (`appimagetool`, `dpkg-deb`) that don't exist on macOS and so could not be
-exercised locally at all. See ADR-0018.
+**Update:** `.github/workflows/ci.yml` has now actually run on GitHub (this repo has a real
+remote as of the first push after v0.1.0) and passed — both jobs green, including `cargo audit`
+and `npm audit`. That run also caught a genuine CI-only race condition in the test suite (a fixed
+`sleep(100ms)` racing a background scan task's persistence write on real, more-contended
+hardware) that never reproduced locally; fixed with a poll-until-idle helper instead of a guessed
+sleep duration.
+
+`.github/workflows/release.yml` (the AppImage/.deb bundling step) has **not** run yet — it only
+triggers on a `v*` tag push, which hasn't happened. It needs Linux packaging tools
+(`appimagetool`, `dpkg-deb`) that don't exist on macOS and so could never be exercised locally
+either. Treat the first tag push as this workflow's real first test, the same way the first
+branch push was for `ci.yml`. See ADR-0018.
 
 ## No fuzz/dynamic testing of parsers
 

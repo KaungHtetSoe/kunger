@@ -28,8 +28,28 @@ Milestone history in [`TASKS.md`](TASKS.md).
 
 ## Development
 
-Prerequisites: Node.js 20+, Rust (stable, via `rustup`), and the
-[Tauri system dependencies](https://v2.tauri.app/start/prerequisites/) for your platform.
+Prerequisites: Node.js 20+, Rust (stable, via `rustup`), and the Tauri system dependencies for
+your platform (see [Tauri's prerequisites page](https://v2.tauri.app/start/prerequisites/) for
+the authoritative, up-to-date list). On Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install libwebkit2gtk-4.1-dev \
+  build-essential \
+  curl \
+  wget \
+  file \
+  libxdo-dev \
+  libssl-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  libdbus-1-dev \
+  pkg-config
+```
+
+`libdbus-1-dev` is easy to miss (it's not always called out explicitly, and some desktop installs
+already have it) — Tauri's window-management crate (`tao`) depends on it unconditionally on
+Linux, and the build fails with a `libdbus-sys`/`pkg-config`/`dbus-1` error without it.
 
 ```bash
 npm install       # install frontend dependencies

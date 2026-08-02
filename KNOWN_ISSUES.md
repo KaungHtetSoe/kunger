@@ -25,13 +25,19 @@ practical consequences:
   APT/Flatpak counts against `dpkg -l`/`flatpak list` directly.** This is the single most
   important verification step this release has not had.
 - **Update:** a first real Debian build attempt (post-release, outside this sandbox) immediately
-  hit exactly the kind of gap this section warned about — the build failed on
-  `libdbus-sys`/`pkg-config: dbus-1 not found`, because `libdbus-1-dev` (a transitive requirement
-  of Tauri's `tao` windowing crate on Linux) was missing from every prerequisites list in this
-  repo (README, CI workflows). Fixed — see `README.md`'s Development section and both
-  `.github/workflows/*.yml` — but flagged here as a concrete instance of "never verified against
-  real Linux" turning up a real gap on the very first attempt. The provider-output comparison
-  above (APT/Flatpak counts vs. `dpkg -l`/`flatpak list`) still hasn't happened.
+  hit exactly the kind of gap this section warned about, twice in a row — the build first failed
+  on `libdbus-sys`/`pkg-config: dbus-1 not found` (`libdbus-1-dev` missing), and after fixing
+  that, failed again on `gdk-sys`/`pkg-config: gdk-3.0 not found` (`libgtk-3-dev` missing). Both
+  are transitive requirements of Tauri's `tao` windowing crate on Linux (`tao` depends on `dbus`
+  and `gtk` unconditionally there) that Tauri's own documented prerequisites list doesn't call
+  out explicitly — it expects `apt` to pull them in as dependencies of `libwebkit2gtk-4.1-dev`,
+  which doesn't always happen cleanly on every Debian variant. Both fixed — see `README.md`'s
+  Development section and both `.github/workflows/*.yml` — but flagged here as concrete instances
+  of "never verified against real Linux" turning up real gaps on the very first attempt, and as a
+  sign there may be further transitive GTK/WebKit packages (`libjavascriptcoregtk-4.1-dev`,
+  `libsoup-3.0-dev`) a future build attempt could still hit depending on the exact Debian release.
+  The provider-output comparison above (APT/Flatpak counts vs. `dpkg -l`/`flatpak list`) still
+  hasn't happened — the build itself hadn't succeeded yet as of this note.
 
 ## UI automation gap
 

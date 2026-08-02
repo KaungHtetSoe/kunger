@@ -48,7 +48,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 ## Phase 5 — Release
 
-- [ ] **M5.1** — Testing and quality gate (`test/inventory-quality-suite`)
+- [x] **M5.1** — Testing and quality gate (`test/inventory-quality-suite`)
 - [ ] **M5.2** — Security review (`docs/SECURITY_REVIEW.md`)
 - [ ] **M5.3** — Performance review (`docs/PERFORMANCE.md`)
 - [ ] **M5.4** — CI/CD and packaging (GitHub Actions, AppImage + .deb)

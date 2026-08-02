@@ -597,4 +597,148 @@ mod tests {
         assert!(matches_filters(&user_item, &request));
         assert!(!matches_filters(&system_item, &request));
     }
+
+    /// Not a micro-benchmark harness (no criterion dependency) -- these
+    /// generously-bounded timing assertions exist so a future change that
+    /// makes the in-memory filter/sort/paginate path accidentally
+    /// quadratic (or removes an obvious optimization) fails CI, and so the
+    /// printed timings (run with `--nocapture`) are the real numbers behind
+    /// `docs/PERFORMANCE.md`'s "list_software_items at N items" claims,
+    /// not guesses.
+    mod performance {
+        use super::*;
+        use crate::commands::scan::get_scan_status_impl;
+        use crate::commands::ScanStatusResponse;
+        use std::time::Instant;
+
+        const SYNTHETIC_ITEM_COUNT: usize = 5000;
+
+        /// `state_with_scanned_items`'s fixed 100ms sleep is tuned for the
+        /// handful of items most tests seed and isn't long enough for a
+        /// scan+persist of thousands of synthetic items to finish -- poll
+        /// scan status instead of guessing a sleep duration.
+        async fn state_with_large_scan(items: Vec<SoftwareItem>) -> AppState {
+            let state = Arc::new(test_state(vec![Box::new(
+                MockInventoryProvider::new("apt").with_items(items),
+            )]));
+            start_inventory_scan_impl(
+                Arc::clone(&state),
+                Arc::new(NoopScanEventEmitter),
+                StartScanRequest::default(),
+            )
+            .await
+            .expect("scan starts");
+
+            for _ in 0..500 {
+                if matches!(
+                    get_scan_status_impl(&state).await.expect("status"),
+                    ScanStatusResponse::Idle { .. }
+                ) {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+
+            Arc::try_unwrap(state)
+                .unwrap_or_else(|arc| panic!("state still has {} refs", Arc::strong_count(&arc)))
+        }
+
+        fn synthetic_items(count: usize) -> Vec<SoftwareItem> {
+            let categories = [
+                SoftwareCategory::Application,
+                SoftwareCategory::Library,
+                SoftwareCategory::CommandLineTool,
+                SoftwareCategory::DevelopmentPackage,
+                SoftwareCategory::Font,
+            ];
+            let managers = [
+                PackageManager::Apt,
+                PackageManager::Flatpak,
+                PackageManager::Snap,
+                PackageManager::Manual,
+            ];
+
+            (0..count)
+                .map(|i| {
+                    let mut it = item(
+                        &format!("apt:pkg-{i}"),
+                        &format!("Package {i}"),
+                        categories[i % categories.len()],
+                        managers[i % managers.len()],
+                    );
+                    it.description = Some(format!(
+                        "A synthetic test package number {i} used for performance measurement"
+                    ));
+                    it.version = Some(format!("1.{i}.0"));
+                    it.installed_size_bytes = Some((i as u64) * 1024);
+                    it
+                })
+                .collect()
+        }
+
+        #[tokio::test]
+        async fn list_software_items_stays_fast_at_thousands_of_items() {
+            let state = state_with_large_scan(synthetic_items(SYNTHETIC_ITEM_COUNT)).await;
+
+            let started = Instant::now();
+            let response = list_software_items_impl(&state, ListSoftwareItemsRequest::default())
+                .await
+                .expect("list");
+            let elapsed = started.elapsed();
+
+            println!(
+                "list_software_items_impl (page 1, no filters) over {SYNTHETIC_ITEM_COUNT} items: {elapsed:?}"
+            );
+            assert_eq!(response.total_count, SYNTHETIC_ITEM_COUNT);
+            assert!(
+                elapsed.as_millis() < 500,
+                "list_software_items_impl took {elapsed:?}, expected well under 500ms for {SYNTHETIC_ITEM_COUNT} items"
+            );
+        }
+
+        #[tokio::test]
+        async fn searching_with_no_matches_stays_fast_at_thousands_of_items() {
+            let state = state_with_large_scan(synthetic_items(SYNTHETIC_ITEM_COUNT)).await;
+
+            let started = Instant::now();
+            let response = list_software_items_impl(
+                &state,
+                ListSoftwareItemsRequest {
+                    search: Some("this-string-matches-nothing".to_string()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .expect("list");
+            let elapsed = started.elapsed();
+
+            println!(
+                "list_software_items_impl (worst-case non-matching search) over {SYNTHETIC_ITEM_COUNT} items: {elapsed:?}"
+            );
+            assert_eq!(response.total_count, 0);
+            assert!(
+                elapsed.as_millis() < 500,
+                "worst-case search took {elapsed:?}, expected well under 500ms for {SYNTHETIC_ITEM_COUNT} items"
+            );
+        }
+
+        #[tokio::test]
+        async fn get_inventory_summary_stays_fast_at_thousands_of_items() {
+            let state = state_with_large_scan(synthetic_items(SYNTHETIC_ITEM_COUNT)).await;
+
+            let started = Instant::now();
+            let summary = get_inventory_summary_impl(&state).await.expect("summary");
+            let elapsed = started.elapsed();
+
+            println!("get_inventory_summary_impl over {SYNTHETIC_ITEM_COUNT} items: {elapsed:?}");
+            assert_eq!(
+                summary.expect("summary present").total_items,
+                SYNTHETIC_ITEM_COUNT
+            );
+            assert!(
+                elapsed.as_millis() < 200,
+                "get_inventory_summary_impl took {elapsed:?}, expected well under 200ms"
+            );
+        }
+    }
 }

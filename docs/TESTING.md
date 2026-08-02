@@ -7,7 +7,7 @@ than trusting these numbers as time passes.
 
 | Suite                    | Count               | Command                                     |
 | ------------------------- | -------------------- | -------------------------------------------- |
-| Rust (`src-tauri`)        | 265 tests, 0 failed  | `cd src-tauri && cargo test`                 |
+| Rust (`src-tauri`)        | 269 tests, 0 failed  | `cd src-tauri && cargo test`                 |
 | Frontend (Vitest)         | 82 tests / 26 files  | `npm test`                                   |
 | Frontend coverage (v8)    | ~88% stmts / 90% lines | `npm run test:coverage`                    |
 | Rust lint                 | clean                | `cd src-tauri && cargo clippy --all-targets` |

@@ -597,4 +597,52 @@ mod tests {
 
         std::fs::remove_dir_all(&dir).ok();
     }
+
+    /// Isolates the SQLite-read + JSON-deserialize cost of `latest_items()`
+    /// from the in-memory filter/sort work `list_software_items_impl`
+    /// layers on top (measured separately in
+    /// `commands::inventory_commands::tests::performance`) -- against a
+    /// real file-based database, not `Connection::open_in_memory()`, to
+    /// match what the packaged app actually does. Numbers feed
+    /// `docs/PERFORMANCE.md`.
+    #[test]
+    fn latest_items_read_cost_at_thousands_of_items() {
+        let dir = std::env::temp_dir().join(format!("kunger-repo-perf-{}", std::process::id()));
+        let path = dir.join("kunger.db");
+        let conn = db::open(&path).expect("open via db module");
+        let repository = SqliteScanRepository::new(conn);
+
+        const COUNT: usize = 5000;
+        let items: Vec<SoftwareItem> = (0..COUNT)
+            .map(|i| {
+                sample_item(
+                    &format!("apt:pkg-{i}"),
+                    &format!("Package {i}"),
+                    Some("1.0"),
+                )
+            })
+            .collect();
+
+        let save_started = std::time::Instant::now();
+        repository
+            .save_scan(&sample_scan_result(items))
+            .expect("save");
+        println!(
+            "save_scan over {COUNT} items (file-backed sqlite): {:?}",
+            save_started.elapsed()
+        );
+
+        let read_started = std::time::Instant::now();
+        let read_back = repository.latest_items().expect("latest_items");
+        let read_elapsed = read_started.elapsed();
+        println!("latest_items() over {COUNT} items (file-backed sqlite): {read_elapsed:?}");
+
+        assert_eq!(read_back.len(), COUNT);
+        assert!(
+            read_elapsed.as_millis() < 500,
+            "latest_items() took {read_elapsed:?}, expected well under 500ms for {COUNT} items"
+        );
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
 }

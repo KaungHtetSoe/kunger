@@ -50,7 +50,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 - [x] **M5.1** — Testing and quality gate (`test/inventory-quality-suite`)
 - [x] **M5.2** — Security review (`docs/SECURITY_REVIEW.md`)
-- [ ] **M5.3** — Performance review (`docs/PERFORMANCE.md`)
+- [x] **M5.3** — Performance review (`docs/PERFORMANCE.md`)
 - [ ] **M5.4** — CI/CD and packaging (GitHub Actions, AppImage + .deb)
 - [ ] **M5.5** — Final release review (`RELEASE_CHECKLIST.md`, `KNOWN_ISSUES.md`, v0.1.0 release notes)
 

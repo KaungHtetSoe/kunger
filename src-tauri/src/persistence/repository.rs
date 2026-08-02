@@ -41,6 +41,11 @@ pub trait ScanRepository: Send + Sync {
     fn latest_scan_summary(&self) -> Result<Option<InventorySummary>, PersistenceError>;
     fn previous_scan_summary(&self) -> Result<Option<InventorySummary>, PersistenceError>;
 
+    /// The id of the most recently saved scan, if any. Lets callers that
+    /// need scan-id-scoped data (duplicate groups, provider results) find
+    /// the latest one without a separate "latest" variant of every method.
+    fn latest_scan_id(&self) -> Result<Option<i64>, PersistenceError>;
+
     fn list_items(&self, scan_id: i64) -> Result<Vec<SoftwareItem>, PersistenceError>;
     fn latest_items(&self) -> Result<Vec<SoftwareItem>, PersistenceError>;
 
@@ -71,17 +76,6 @@ impl SqliteScanRepository {
         Self {
             conn: Mutex::new(conn),
         }
-    }
-
-    fn latest_scan_id(&self) -> Result<Option<i64>, PersistenceError> {
-        let conn = self.lock();
-        conn.query_row(
-            "SELECT id FROM scan_sessions ORDER BY id DESC LIMIT 1",
-            [],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(PersistenceError::from)
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Connection> {
@@ -188,6 +182,17 @@ impl ScanRepository for SqliteScanRepository {
             )
             .optional()?;
         summary_json.map(|json| from_json(&json)).transpose()
+    }
+
+    fn latest_scan_id(&self) -> Result<Option<i64>, PersistenceError> {
+        let conn = self.lock();
+        conn.query_row(
+            "SELECT id FROM scan_sessions ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(PersistenceError::from)
     }
 
     fn list_items(&self, scan_id: i64) -> Result<Vec<SoftwareItem>, PersistenceError> {

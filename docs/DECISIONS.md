@@ -288,3 +288,45 @@ cost of the schema not being a fully normalized relational model (some data is o
 by deserializing `data_json`, not via SQL). The `Mutex<Connection>` serializes all database
 access; acceptable for a single local desktop app with modest (thousands, not millions of rows)
 data volume, revisit if profiling ever shows contention.
+
+---
+
+## ADR-0015 — Command layer: thin `#[tauri::command]` wrappers over plain testable `_impl` functions; `Arc<AppState>` managed state
+
+**Date:** 2026-08-02
+**Status:** Accepted
+
+**Context:** M4.4 needed to implement all eleven required IPC commands with real unit test
+coverage, but `tauri::State`/`tauri::AppHandle` can't be constructed outside a running Tauri
+app, and `start_inventory_scan` needs to run the actual scan in a background `tokio::spawn` task
+outlived the command call itself.
+
+**Decision:**
+
+- Every command is a thin `#[tauri::command]` wrapper that extracts Tauri-specific parameters
+  and immediately delegates to a plain `..._impl` function taking `&AppState` (or `Arc<AppState>`
+  for the one command that spawns a background task). All 25 command-layer tests call the
+  `_impl` functions directly, never through Tauri's invoke machinery.
+- Scan lifecycle events go through a `ScanEventEmitter` trait (`TauriScanEventEmitter` for real
+  use, `NoopScanEventEmitter` for tests) rather than calling `AppHandle::emit` directly from
+  command logic, for the same testability reason.
+- Tauri-managed state is `Arc<AppState>` (not `AppState` directly), so `start_inventory_scan` can
+  clone the `Arc` into its spawned task. Every command uniformly takes
+  `tauri::State<'_, Arc<AppState>>` for consistency, even ones that don't spawn anything.
+- A `run_blocking` helper wraps every `ScanRepository` call in `tokio::task::spawn_blocking`
+  (rusqlite is synchronous — ADR-0014) and converts the result to `CommandError` in one place.
+- `list_software_items` filters/sorts/paginates in memory over `latest_items()` rather than at
+  the SQL layer (see that command's module doc for the volume-based rationale).
+- `export_inventory` implements the full technical inventory export (JSON/YAML/CSV) now; the
+  reinstallation-manifest export mode is deliberately left for the dedicated M4.6 export
+  milestone rather than bolted on here.
+
+**Consequences:** Command logic is fully unit-testable without a running Tauri app or real
+filesystem paths beyond throwaway temp SQLite files. The `#[tauri::command]` macro generates
+hidden sibling items (`__cmd__<name>` etc.) in the function's _original_ module, which are not
+reachable through a flat `pub use` re-export — `tauri::generate_handler!` in `lib.rs` must
+reference each command by its full submodule path (e.g. `commands::scan::start_inventory_scan`),
+not a re-exported flat path; this tripped up the first implementation attempt and is called out
+here so it isn't rediscovered. Capability/ACL entries for these custom commands
+(`capabilities/default.json`) are deferred to M4.5+, once the frontend actually calls them and
+any permission errors can be diagnosed against a real `invoke()`.

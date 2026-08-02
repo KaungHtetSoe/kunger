@@ -15,7 +15,9 @@ use crate::domain::{
     DuplicateGroup, InventoryStatus, InventorySummary, PackageManager, ProviderInventory,
     ProviderStatus, SoftwareCategory, SoftwareItem,
 };
-use crate::providers::{run_provider_scan, InventoryProvider, ProviderId, ScanContext};
+use crate::providers::{
+    run_provider_scan, InventoryProvider, ProviderId, ProviderMetadata, ScanContext,
+};
 
 /// The full result of one unified inventory scan.
 pub struct ScanResult {
@@ -68,6 +70,18 @@ impl InventoryService {
             statuses.push((provider.id(), provider.is_available().await));
         }
         statuses
+    }
+
+    /// Like [`Self::provider_statuses`], but includes each provider's
+    /// static [`ProviderMetadata`] (display name, description) — what the
+    /// `get_provider_status` IPC command actually needs to render a
+    /// provider list to the user.
+    pub async fn provider_status_details(&self) -> Vec<(ProviderMetadata, bool)> {
+        let mut details = Vec::with_capacity(self.providers.len());
+        for provider in &self.providers {
+            details.push((provider.metadata(), provider.is_available().await));
+        }
+        details
     }
 
     /// Runs every registered provider concurrently, each under

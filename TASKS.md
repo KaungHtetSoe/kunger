@@ -38,7 +38,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [x] **M4.1** — Unified inventory service (combine providers, timeouts, partial-success reporting)
 - [ ] **M4.2** — Duplicate detection across managers
 - [x] **M4.3** — SQLite persistence + scan history / diffing
-- [ ] **M4.4** — Tauri IPC command layer + typed frontend service
+- [x] **M4.4** — Tauri IPC command layer + typed frontend service
 - [ ] **M4.5** — Dashboard
 - [ ] **M4.6** — Export (JSON/YAML/CSV, full inventory + reinstallation manifest)
 

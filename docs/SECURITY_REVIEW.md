@@ -85,11 +85,16 @@ attack surface with no offsetting functionality — removed the Rust dependency,
 **Verification:** `cargo build`, full Rust suite (265/265), `npm run build`, full frontend suite
 (82/82) all pass with the plugin removed; `npm run tauri dev` starts clean and renders correctly.
 
-## Tooling gaps (accepted, revisit in CI)
+## Tooling gaps (accepted)
 
-- **No `cargo-audit`/`cargo-deny`.** Neither is installed and this sandbox has no network access
-  to install them. Cargo.lock wasn't manually diffed against a CVE database. Revisit once M5.4
-  sets up CI with network access — `cargo audit` in the pipeline is the natural fix.
+- **`cargo audit` and `npm audit` now run in CI** (`.github/workflows/ci.yml`, added in M5.4):
+  `cargo audit` gates the backend job (fails the build on a new advisory), `npm audit
+--audit-level=high` runs informationally (`continue-on-error: true`) since it currently reports
+  the one pre-existing, already-reviewed advisory below and a hard gate would permanently red the
+  build over a risk that's been explicitly accepted. Neither could be run in this sandbox at
+  review time (no network access to install `cargo-audit`, and `npm audit`'s output was already
+  captured directly via `npm audit` — see below) — GitHub's runners have full network access, so
+  this is real coverage going forward, not aspirational.
 - **`npm audit` shows one pre-existing high-severity advisory**: `react-router-dom` /
   `react-router` (GHSA-qwww-vcr4-c8h2, an RSC-mode CSRF bypass). Already reviewed and accepted in
   ADR-0008: Kunger has no server and never uses React Router's RSC/data mode, so the vulnerable

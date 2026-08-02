@@ -14,7 +14,10 @@ See [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) for the full product specific
 
 ## Status
 
-Early development (pre-0.1). Follow progress in [`TASKS.md`](TASKS.md).
+v0.1.0, feature-complete for V1 — see [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for what's included,
+[`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) for the acceptance-criteria verification behind
+that claim, and [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) for what to know before relying on it.
+Milestone history in [`TASKS.md`](TASKS.md).
 
 ## Technology
 

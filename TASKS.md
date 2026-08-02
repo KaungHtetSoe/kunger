@@ -22,8 +22,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 - [x] **M2.1** — APT/dpkg provider (staged scan, fixtures, no per-package subprocess spam)
 - [x] **M2.2** — Classification rules for APT-sourced items (wired into the APT provider directly via `Evidence`/`classify()`)
-- [ ] **M2.3** — Inventory browser (table, filters, sort, search) — basic version
-- [ ] **M2.4** — Software details view
+- [x] **M2.3** — Inventory browser (table, filters, sort, search) — basic version — superseded by the fuller **M4.5c**/**M4.5e** once the frontend shell existed; never built separately
+- [x] **M2.4** — Software details view — superseded by the fuller **M4.5d**; never built separately
 
 ## Phase 3 — Desktop Inventory
 
@@ -52,7 +52,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [x] **M5.2** — Security review (`docs/SECURITY_REVIEW.md`)
 - [x] **M5.3** — Performance review (`docs/PERFORMANCE.md`)
 - [x] **M5.4** — CI/CD and packaging (GitHub Actions, AppImage + .deb)
-- [ ] **M5.5** — Final release review (`RELEASE_CHECKLIST.md`, `KNOWN_ISSUES.md`, v0.1.0 release notes)
+- [x] **M5.5** — Final release review (`RELEASE_CHECKLIST.md`, `KNOWN_ISSUES.md`, v0.1.0 release notes)
 
 ---
 
@@ -60,4 +60,6 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 - Project name: **Kunger**. (Earlier planning material referred to this product as "PackageLens" — that name is retired; all docs/code should use "Kunger.")
 - First release targets Debian and Ubuntu only, read-only inventory, no privileged operations.
-- Not yet a git repository — repository initialization is part of M1.2.
+- v0.1.0 is feature-complete for V1 as of M5.5 — see `RELEASE_CHECKLIST.md` for the
+  acceptance-criteria-by-acceptance-criteria verification and `KNOWN_ISSUES.md` for what to know
+  before relying on it.

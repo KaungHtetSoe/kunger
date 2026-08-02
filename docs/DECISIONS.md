@@ -249,3 +249,42 @@ Name-based duplicate detection will miss real duplicates with divergent naming (
 "GNU Image Manipulation Program") and is a known, documented limitation rather than a defect —
 stronger matching (app-id heuristics, fuzzy string matching) is future work, not required for
 v0.1's read-only inventory promise.
+
+---
+
+## ADR-0014 — SQLite persistence: indexed columns + full JSON blob per row; sync `rusqlite` behind a `Mutex`
+
+**Date:** 2026-08-02
+**Status:** Accepted
+
+**Context:** M4.3 needed a schema for `scan_sessions`, `software_items`, `duplicate_groups`, and
+`provider_results` that supports the filtering/sorting `list_software_items` (Prompt 08) will
+need, without requiring a schema migration every time a domain field changes, and needed a
+SQLite binding choice. The domain types already fully round-trip through `serde_json`
+(ADR-0009).
+
+**Decision:**
+
+- Each table carries a handful of real, indexed SQL columns for the fields actually
+  filtered/sorted on (category, package_manager, scope, installation_reason, confidence,
+  version, display_name) _plus_ a `data_json` column holding the complete serialized domain
+  type. Reads reconstruct the full type from `data_json`; only the indexed columns are used in
+  `WHERE`/`ORDER BY` clauses. Enum values are stored as their plain serde camelCase string (e.g.
+  `"commandLineTool"`) via `serde_json::to_value(..).as_str()`, reusing serde's naming instead of
+  hand-written match arms per enum.
+- Uses `rusqlite` (bundled SQLite, no system dependency) rather than an async driver like
+  `sqlx`. `rusqlite::Connection` is synchronous and not `Sync`, so `SqliteScanRepository` wraps
+  it in a `std::sync::Mutex`. Repository methods are themselves synchronous; the Tauri command
+  layer (Prompt 08) is responsible for calling them via `tokio::task::spawn_blocking` so they
+  never block the async runtime.
+- A corrupted or unreadable database file is never a fatal error: `persistence::db::open`
+  attempts to open + migrate, and on any failure renames the file aside
+  (`kunger.db.corrupt-<timestamp>`) and creates a fresh one in its place, per ADR-0006 (the
+  database is a rebuildable cache, never the source of truth).
+
+**Consequences:** Adding a new field to `SoftwareItem` never requires a migration unless that
+field also needs to be filterable/sortable at the SQL level — cheap for the common case, at the
+cost of the schema not being a fully normalized relational model (some data is only accessible
+by deserializing `data_json`, not via SQL). The `Mutex<Connection>` serializes all database
+access; acceptable for a single local desktop app with modest (thousands, not millions of rows)
+data volume, revisit if profiling ever shows contention.

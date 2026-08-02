@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { SortDirection, SortField } from "@/types/commands";
 import type { SoftwareItem } from "@/types/domain";
 import { formatSoftwareCategory, formatPackageManager } from "@/utils/labels";
+import { formatBytes } from "@/utils/format";
 
 interface Column {
   key: SortField;
@@ -113,17 +114,4 @@ function SortIcon({ active, direction }: { active: boolean; direction: SortDirec
   ) : (
     <ArrowDown className="h-3 w-3" aria-hidden="true" />
   );
-}
-
-function formatBytes(bytes: number | null): string {
-  if (bytes === null) return "—";
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = bytes / 1024;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex++;
-  }
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
 }

@@ -7,7 +7,7 @@ than trusting these numbers as time passes.
 
 | Suite                    | Count               | Command                                     |
 | ------------------------- | -------------------- | -------------------------------------------- |
-| Rust (`src-tauri`)        | 261 tests, 0 failed  | `cd src-tauri && cargo test`                 |
+| Rust (`src-tauri`)        | 265 tests, 0 failed  | `cd src-tauri && cargo test`                 |
 | Frontend (Vitest)         | 82 tests / 26 files  | `npm test`                                   |
 | Frontend coverage (v8)    | ~88% stmts / 90% lines | `npm run test:coverage`                    |
 | Rust lint                 | clean                | `cd src-tauri && cargo clippy --all-targets` |
@@ -43,7 +43,7 @@ is a reasonable follow-up.
   fresh DB), schema tests against a real temp SQLite file (never mocked — ADR-0014).
 - **Commands** (`commands/`): every `_impl` function tested directly (no Tauri runtime needed —
   ADR-0015), including the M4.6 reinstallation-manifest export (JSON/YAML/CSV × full vs.
-  manifest, 8 cases).
+  manifest, plus the CSV formula-injection guard added in M5.2 -- 12 cases in `export.rs`).
 - **Frontend**: every page now has at least a loading/error/empty/populated-state test where that
   state exists (Dashboard, Duplicates, Providers, Export, Software details, Inventory browser),
   per the "no UI state silently skipped" rule in `docs/ARCHITECTURE.md`. Interaction-heavy pieces

@@ -71,6 +71,22 @@ fn export_yaml(items: &[SoftwareItem]) -> Result<String, CommandError> {
         .map_err(|e| CommandError::internal(format!("failed to serialize YAML export: {e}")))
 }
 
+/// Neutralizes CSV/spreadsheet formula injection (CWE-1236). A scanned
+/// package id, name, or version is normally safe, but it ultimately comes
+/// from package metadata Kunger doesn't control -- a malicious or corrupted
+/// package could in principle set a name like `=cmd|'/c calc'!A1`, which
+/// Excel/LibreOffice Calc/Google Sheets treat as a formula when the
+/// exported CSV is opened, not literal text. Prefixing such values with a
+/// single quote forces spreadsheet apps to treat the cell as text; it does
+/// not affect CSV-syntax escaping (commas/quotes), which the `csv` crate
+/// already handles separately.
+fn csv_safe(value: &str) -> String {
+    match value.chars().next() {
+        Some('=' | '+' | '-' | '@' | '\t' | '\r') => format!("'{value}"),
+        _ => value.to_string(),
+    }
+}
+
 fn export_csv(items: &[SoftwareItem]) -> Result<String, CommandError> {
     let mut writer = csv::Writer::from_writer(Vec::new());
 
@@ -92,19 +108,18 @@ fn export_csv(items: &[SoftwareItem]) -> Result<String, CommandError> {
     for item in items {
         writer
             .write_record([
-                item.id.as_str(),
-                item.package_name.as_str(),
-                item.display_name.as_str(),
-                &format!("{:?}", item.category),
-                &format!("{:?}", item.package_manager),
-                &format!("{:?}", item.scope),
-                item.version.as_deref().unwrap_or(""),
-                &item
-                    .installed_size_bytes
+                csv_safe(&item.id),
+                csv_safe(&item.package_name),
+                csv_safe(&item.display_name),
+                format!("{:?}", item.category),
+                format!("{:?}", item.package_manager),
+                format!("{:?}", item.scope),
+                csv_safe(item.version.as_deref().unwrap_or("")),
+                item.installed_size_bytes
                     .map(|v| v.to_string())
                     .unwrap_or_default(),
-                &item.update_available.to_string(),
-                &format!("{:?}", item.classification_confidence),
+                item.update_available.to_string(),
+                format!("{:?}", item.classification_confidence),
             ])
             .map_err(|e| {
                 CommandError::internal(format!("failed to write CSV row for {}: {e}", item.id))
@@ -287,13 +302,13 @@ fn export_manifest_csv(manifest: &ReinstallManifest) -> Result<String, CommandEr
         for package in &group.packages {
             writer
                 .write_record([
-                    "yes",
-                    &format!("{:?}", group.package_manager),
-                    package.package_name.as_str(),
-                    package.display_name.as_str(),
-                    package.version.as_deref().unwrap_or(""),
-                    "",
-                    &group.install_hint,
+                    "yes".to_string(),
+                    format!("{:?}", group.package_manager),
+                    csv_safe(&package.package_name),
+                    csv_safe(&package.display_name),
+                    csv_safe(package.version.as_deref().unwrap_or("")),
+                    String::new(),
+                    group.install_hint.clone(),
                 ])
                 .map_err(|e| CommandError::internal(format!("failed to write CSV row: {e}")))?;
         }
@@ -302,13 +317,13 @@ fn export_manifest_csv(manifest: &ReinstallManifest) -> Result<String, CommandEr
     for item in &manifest.manual_review {
         writer
             .write_record([
-                "no",
-                &format!("{:?}", item.package_manager),
-                "",
-                item.display_name.as_str(),
-                "",
-                &item.paths.join("; "),
-                &item.reason,
+                "no".to_string(),
+                format!("{:?}", item.package_manager),
+                String::new(),
+                csv_safe(&item.display_name),
+                String::new(),
+                csv_safe(&item.paths.join("; ")),
+                item.reason.clone(),
             ])
             .map_err(|e| {
                 CommandError::internal(format!("failed to write CSV row for {}: {e}", item.id))
@@ -378,6 +393,25 @@ mod tests {
         ExportRequest {
             format,
             mode: ExportMode::ReinstallationManifest,
+        }
+    }
+
+    #[test]
+    fn csv_safe_prefixes_formula_leading_characters() {
+        for dangerous in ["=SUM(A1)", "+1", "-1", "@cmd", "\ttab", "\rcr"] {
+            let escaped = csv_safe(dangerous);
+            assert!(
+                escaped.starts_with('\''),
+                "expected {dangerous:?} to be escaped"
+            );
+            assert_eq!(&escaped[1..], dangerous);
+        }
+    }
+
+    #[test]
+    fn csv_safe_leaves_ordinary_values_untouched() {
+        for ordinary in ["firefox", "1.2.3", "", "a=b", "GNU/Linux"] {
+            assert_eq!(csv_safe(ordinary), ordinary);
         }
     }
 
@@ -502,6 +536,48 @@ mod tests {
         assert!(lines.iter().any(|line| line.starts_with("yes,Apt,ripgrep")));
         assert!(lines.iter().any(|line| line.starts_with("no,Manual,")));
         assert!(!response.content.contains("libc6"));
+    }
+
+    #[tokio::test]
+    async fn full_csv_export_neutralizes_formula_prefixes_in_scanned_fields() {
+        let mut item = SoftwareItem::new(
+            "apt:evil-pkg",
+            "=SUM(A1:A9)",
+            "@evil()",
+            PackageManager::Apt,
+        );
+        item.version = Some("+1.0".to_string());
+        let state = state_with_items(vec![item]).await;
+
+        let response = export_inventory_impl(&state, full_request(ExportFormat::Csv))
+            .await
+            .expect("export");
+
+        let data_row = response.content.lines().nth(1).expect("data row");
+        assert!(data_row.contains("'=SUM(A1:A9)"));
+        assert!(data_row.contains("'@evil()"));
+        assert!(data_row.contains("'+1.0"));
+    }
+
+    #[tokio::test]
+    async fn manifest_csv_neutralizes_formula_prefixes_in_scanned_fields() {
+        let mut manual_apt = SoftwareItem::new("apt:x", "=cmd()", "-2+3", PackageManager::Apt);
+        manual_apt.installation_reason = InstallationReason::Manual;
+
+        let mut manual_local =
+            SoftwareItem::new("manual:y", "y", "@display", PackageManager::Manual);
+        manual_local.install_paths = vec!["=HYPERLINK(\"http://evil\")".to_string()];
+
+        let state = state_with_items(vec![manual_apt, manual_local]).await;
+
+        let response = export_inventory_impl(&state, manifest_request(ExportFormat::Csv))
+            .await
+            .expect("export");
+
+        assert!(response.content.contains("'=cmd()"));
+        assert!(response.content.contains("'-2+3"));
+        assert!(response.content.contains("'@display"));
+        assert!(response.content.contains("'=HYPERLINK"));
     }
 
     #[tokio::test]

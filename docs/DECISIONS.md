@@ -385,3 +385,40 @@ requires the manifest to clearly separate what Kunger can vs. cannot automatical
 vs. manifest, plus an empty-scan case for each mode). The manifest's on-page preview
 (`ManifestPreview`) always fetches in JSON regardless of the format the user will eventually
 download, so switching formats doesn't require a second round-trip just to re-render the preview.
+
+## ADR-0017 — Security review fixes: CSV formula-injection guard, restrictive CSP, dropped unused opener plugin
+
+**Date:** 2026-08-02
+**Status:** Accepted
+
+**Context:** M5.2's security review (`docs/SECURITY_REVIEW.md`) found three concrete issues: CSV
+exports were vulnerable to spreadsheet formula injection (CWE-1236), `tauri.conf.json` shipped
+with no Content-Security-Policy at all (scaffolding default), and the default-scaffolded
+`tauri-plugin-opener` was enabled with a granted permission despite being completely unused.
+
+**Decision:**
+
+- Added `csv_safe()` in `commands/export.rs`: prefixes any scanned-data CSV field beginning with
+  `=`, `+`, `-`, `@`, tab, or CR with a single quote, applied to every field whose value
+  ultimately comes from package metadata (id, package name, display name, version, paths) in both
+  CSV export modes. Kunger-authored literals (`"yes"`/`"no"`, install hints, manual-review
+  reasons) are left alone since they can't be attacker-influenced.
+- Set a real CSP in `tauri.conf.json`:
+  `default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'`.
+  `connect-src` needs the `ipc:`/`http://ipc.localhost` allowance for Tauri's own IPC bridge;
+  `style-src` needs `'unsafe-inline'` for `PackageManagerBreakdown`'s one dynamic inline
+  bar-width style (computed from Kunger's own data, not user input). Everything else defaults to
+  same-origin-only, with `object-src`/`base-uri`/`form-action` explicitly closed off since the
+  app uses none of them.
+- Removed `tauri-plugin-opener` entirely (Cargo dependency, `.plugin(...)` registration,
+  `opener:default` capability grant, `@tauri-apps/plugin-opener` npm package) — it was scaffolded
+  by default and never called from the frontend. An enabled plugin with a granted permission and
+  zero call sites is attack surface with no offsetting functionality.
+
+**Consequences:** `export.rs` gained 4 regression tests for the formula-injection guard (261 ->
+265 Rust tests). The CSP and plugin removal have no unit-testable surface of their own; verified
+by a clean production build, a clean `cargo build`, and a real `npm run tauri dev` run whose
+Dashboard rendered correctly against the live scan cache under both changes (confirmed via
+accessibility-tree read, per the verification approach documented in `docs/TESTING.md`). If a
+future milestone needs the opener plugin (e.g. an "open containing folder" feature), re-add it
+deliberately with a scoped permission rather than restoring the default-scaffolded one.

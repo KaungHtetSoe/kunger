@@ -95,16 +95,32 @@ Architecture Decision Records (ADRs), lightweight format. Append new entries; do
 
 ---
 
-## ADR-0008 (pending) — Frontend server-state library
+## ADR-0008 — Frontend server-state library: TanStack Query
 
-**Date:** 2026-08-01
-**Status:** Deferred
+**Date:** 2026-08-02
+**Status:** Accepted (supersedes the "deferred" placeholder recorded on 2026-08-01)
 
-**Context:** Need a strategy for caching/refetching IPC-derived data (inventory, scan status, provider status) in the React frontend without ad hoc `useEffect` fetching per feature.
+**Context:** Needed a strategy for caching/refetching IPC-derived data (scan status, provider
+status, inventory summary/items) in the React frontend without ad hoc `useEffect` fetching per
+feature, once the real IPC command shapes existed (M4.4).
 
-**Decision:** Not yet made. Candidates: a React Query–style library, or a minimal custom hook layer over `invoke`. To be decided during Prompt 09A (frontend shell) once real IPC shapes exist.
+**Decision:** `@tanstack/react-query` (`src/app/QueryProvider.tsx`), with query hooks colocated
+under `src/hooks/` (`useScanStatus`, `useProviderStatus`) rather than fetching inline in every
+component. `useScanStatus` polls `get_scan_status` once per second only while a scan is actually
+running (`refetchInterval` keyed off the current query data), and otherwise relies on the
+`scan-started`/`scan-completed`/`scan-failed`/`scan-cancelled` Tauri events
+(`src/services/kungerApi.ts`'s `scanEvents`) to invalidate the relevant query keys immediately —
+no continuous polling while idle.
 
-**Consequences:** N/A until decided.
+**Consequences:** Server-state caching, loading/error states, and refetch-on-focus behavior come
+for free per query hook rather than being hand-rolled per feature. Also chose
+`react-router-dom` (hash-based routing — `createHashRouter`, since Tauri serves static assets
+with no server available to rewrite deep-linked paths) for the shell's navigation, and
+`lucide-react` for icons. Note: `react-router-dom` currently has an open high-severity advisory
+(GHSA-qwww-vcr4-c8h2, RSC-mode CSRF bypass); the only available fix is a downgrade to 7.11.0, and
+the vulnerability class doesn't apply to Kunger (no server, no React Router RSC mode in use) —
+kept at the latest 7.18.2 as an accepted, inapplicable risk rather than downgrading. Revisit if a
+version above the vulnerable range (>8.2.0) is released.
 
 ---
 

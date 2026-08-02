@@ -36,10 +36,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 ## Phase 4 — Intelligence
 
 - [x] **M4.1** — Unified inventory service (combine providers, timeouts, partial-success reporting)
-- [ ] **M4.2** — Duplicate detection across managers
+- [x] **M4.2** — Duplicate detection across managers (completed alongside M4.1 — `inventory::duplicates`)
 - [x] **M4.3** — SQLite persistence + scan history / diffing
 - [x] **M4.4** — Tauri IPC command layer + typed frontend service
-- [ ] **M4.5** — Dashboard
+- [x] **M4.5a** — Frontend application shell (sidebar, top bar, routing, notifications, scan/provider status indicators)
+- [ ] **M4.5b** — Dashboard (scan summary stats, Scan System button, live progress)
+- [ ] **M4.5c** — Inventory browser (table, category/manager/scope filters, sort, pagination)
+- [ ] **M4.5d** — Software details view
+- [ ] **M4.5e** — Search and filters (full wiring of the global search box)
 - [ ] **M4.6** — Export (JSON/YAML/CSV, full inventory + reinstallation manifest)
 
 ## Phase 5 — Release

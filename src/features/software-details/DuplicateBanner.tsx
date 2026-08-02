@@ -21,12 +21,16 @@ export function DuplicateBanner({ itemId, groups }: DuplicateBannerProps) {
       <Copy className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <div>
         <p>
-          Possibly installed more than once, via a different package manager ({matchingGroup.confidence}{" "}
-          confidence). {matchingGroup.reason}
+          Possibly installed more than once, via a different package manager (
+          {matchingGroup.confidence} confidence). {matchingGroup.reason}
         </p>
         <p className="mt-1 flex flex-wrap gap-x-3">
           {otherIds.map((id) => (
-            <Link key={id} to={`/software/${encodeURIComponent(id)}`} className="underline hover:no-underline">
+            <Link
+              key={id}
+              to={`/software/${encodeURIComponent(id)}`}
+              className="underline hover:no-underline"
+            >
               {id}
             </Link>
           ))}

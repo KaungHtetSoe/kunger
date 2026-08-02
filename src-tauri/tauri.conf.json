@@ -25,7 +25,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["appimage", "deb"],
+    "category": "Utility",
+    "shortDescription": "Read-only software inventory for Debian/Ubuntu",
+    "longDescription": "Kunger scans APT/dpkg, Flatpak, desktop entries, fonts, AppImages, and manually-installed software to show what's installed, who owns it, and why it's classified the way it is. Read-only: it never installs, updates, or removes anything.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

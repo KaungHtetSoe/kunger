@@ -44,7 +44,12 @@ describe("ProvidersPage", () => {
 
   it("marks available and unavailable providers distinctly", async () => {
     renderPage([
-      { id: "apt", displayName: "APT/dpkg", description: "Debian package manager", available: true },
+      {
+        id: "apt",
+        displayName: "APT/dpkg",
+        description: "Debian package manager",
+        available: true,
+      },
       { id: "flatpak", displayName: "Flatpak", description: "Sandboxed apps", available: false },
     ]);
 

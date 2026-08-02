@@ -48,6 +48,21 @@ cargo clippy --all-targets --all-features
 cargo test
 ```
 
+CI (`.github/workflows/ci.yml`) runs all of the above on every push to `main` and every pull
+request.
+
+### Building packages
+
+```bash
+npm run tauri build -- --bundles appimage,deb
+```
+
+Produces an AppImage and a `.deb` under `src-tauri/target/release/bundle/`. Requires the Tauri
+Linux build dependencies (see [prerequisites](https://v2.tauri.app/start/prerequisites/)) — this
+only works on Linux, not macOS or Windows, since it links against `webkit2gtk`. Pushing a `v*` tag
+(e.g. `v0.1.0`) runs `.github/workflows/release.yml`, which builds both bundles on Ubuntu and
+attaches them to a draft GitHub Release.
+
 ## Documentation
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — what Kunger does and does not do
@@ -55,6 +70,9 @@ cargo test
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — architecture decision log
 - [`docs/CLASSIFICATION.md`](docs/CLASSIFICATION.md) — how software is categorized
 - [`docs/SECURITY.md`](docs/SECURITY.md) — security model and constraints
+- [`docs/SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md) — pre-release security review findings
+- [`docs/TESTING.md`](docs/TESTING.md) — test suite coverage and quality gate
+- [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) — performance review and measurements
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — development workflow
 - [`SECURITY.md`](SECURITY.md) — how to report a vulnerability
 

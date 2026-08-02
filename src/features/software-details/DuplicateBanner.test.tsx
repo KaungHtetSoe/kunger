@@ -11,7 +11,12 @@ function renderWithRouter(ui: React.ReactElement) {
 describe("DuplicateBanner", () => {
   it("renders nothing when the item isn't part of any duplicate group", () => {
     const groups: DuplicateGroup[] = [
-      { id: "dup:1", itemIds: ["apt:a", "flatpak:a"], reason: "same normalized name", confidence: "high" },
+      {
+        id: "dup:1",
+        itemIds: ["apt:a", "flatpak:a"],
+        reason: "same normalized name",
+        confidence: "high",
+      },
     ];
 
     const { container } = renderWithRouter(<DuplicateBanner itemId="apt:b" groups={groups} />);
@@ -21,7 +26,12 @@ describe("DuplicateBanner", () => {
 
   it("shows the reason and links to the other installations when a match is found", () => {
     const groups: DuplicateGroup[] = [
-      { id: "dup:1", itemIds: ["apt:a", "flatpak:a"], reason: "same normalized name", confidence: "high" },
+      {
+        id: "dup:1",
+        itemIds: ["apt:a", "flatpak:a"],
+        reason: "same normalized name",
+        confidence: "high",
+      },
     ];
 
     renderWithRouter(<DuplicateBanner itemId="apt:a" groups={groups} />);

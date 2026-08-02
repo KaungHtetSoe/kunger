@@ -46,7 +46,11 @@ function renderPage() {
       if (request.mode === "reinstallationManifest") {
         return Promise.resolve({ schemaVersion: 1, format: "json", content: manifestContent });
       }
-      return Promise.resolve({ schemaVersion: 1, format: request.format, content: "exported-content" });
+      return Promise.resolve({
+        schemaVersion: 1,
+        format: request.format,
+        content: "exported-content",
+      });
     }
     return Promise.resolve(null);
   });
@@ -83,7 +87,9 @@ describe("ExportPage", () => {
   it("always shows the privacy notice about installation paths", () => {
     renderPage();
 
-    expect(screen.getByText(/contain your home directory and therefore your username/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/contain your home directory and therefore your username/i),
+    ).toBeInTheDocument();
   });
 
   it("downloads the export and shows a success notification on click", async () => {

@@ -14,8 +14,8 @@ export function DuplicatesPage() {
     <div className="p-6">
       <h1 className="mb-1 text-lg font-semibold text-neutral-100">Duplicates</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Software that appears to be installed more than once, via different package managers.
-        Kunger only flags these -- it never merges or removes anything automatically.
+        Software that appears to be installed more than once, via different package managers. Kunger
+        only flags these -- it never merges or removes anything automatically.
       </p>
 
       {isPending ? (

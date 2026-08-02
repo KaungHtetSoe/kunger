@@ -422,3 +422,41 @@ Dashboard rendered correctly against the live scan cache under both changes (con
 accessibility-tree read, per the verification approach documented in `docs/TESTING.md`). If a
 future milestone needs the opener plugin (e.g. an "open containing folder" feature), re-add it
 deliberately with a scoped permission rather than restoring the default-scaffolded one.
+
+## ADR-0018 — GitHub Actions CI/CD; bundle targets restricted to AppImage + .deb
+
+**Date:** 2026-08-02
+**Status:** Accepted
+
+**Context:** M5.4 needed a CI pipeline enforcing the same checks `CONTRIBUTING.md`'s PR template
+already lists (fmt, clippy, test, lint, typecheck, test, build) and a release pipeline producing
+installable Linux packages, without a live GitHub remote in this environment to test against.
+
+**Decision:**
+
+- `.github/workflows/ci.yml` runs on every push to `main` and every PR, as two independent jobs
+  (`backend`, `frontend`) so a failure in one doesn't block visibility into the other. The backend
+  job runs on `ubuntu-22.04` (not `ubuntu-latest`) specifically because Tauri 2's WebView
+  dependency is `libwebkit2gtk-4.1-dev`, and pinning the version keeps the required system
+  package list from silently drifting if GitHub changes what `ubuntu-latest` points to.
+- `tauri.conf.json`'s `bundle.targets` changed from the scaffolding default `"all"` to
+  `["appimage", "deb"]`. Kunger only runs on Debian/Ubuntu by design (it scans `dpkg`/`apt`
+  directly) — building `.msi`/`.dmg`/other-OS bundle targets would produce artifacts for a
+  platform the app doesn't actually support, so restricting the target list matches the product's
+  actual scope rather than scaffolding boilerplate. Also added `category`, `shortDescription`,
+  and `longDescription` to the bundle config, which feed the generated `.desktop` entry and `.deb`
+  control file — previously empty scaffolding defaults.
+- `.github/workflows/release.yml` uses the official `tauri-apps/tauri-action`, triggered only by
+  pushing a `v*` tag, rather than hand-rolling `cargo tauri build` + artifact-upload steps. It
+  creates a **draft** GitHub Release (`releaseDraft: true`) rather than publishing immediately —
+  a human should review the generated bundles before making a release public, matching M5.5's
+  release-checklist gate rather than auto-publishing on every tag push.
+
+**Consequences:** Neither workflow could be executed end-to-end in this sandbox (no GitHub remote
+configured, and AppImage/.deb bundling itself requires Linux tooling — `appimagetool`,
+`dpkg-deb` — not present on macOS). Verified what's checkable locally: both YAML files parse as
+valid YAML (`npx js-yaml`), the changed `tauri.conf.json` still passes `tauri-build`'s own
+schema validation (a plain `cargo build` fails loudly on a malformed config, and didn't), and a
+`npm run tauri dev` run after the config change still renders correctly. The actual Linux build
+and release flow needs verification the first time this repository is pushed to GitHub with a
+real remote — flagged here rather than silently assumed correct.

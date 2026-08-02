@@ -100,7 +100,12 @@ describe("SoftwareDetailsPage", () => {
 
   it("shows a duplicate banner when the item is part of a duplicate group", async () => {
     renderPage(baseItem({}), [
-      { id: "dup:1", itemIds: ["apt:firefox", "flatpak:firefox"], reason: "same normalized name", confidence: "high" },
+      {
+        id: "dup:1",
+        itemIds: ["apt:firefox", "flatpak:firefox"],
+        reason: "same normalized name",
+        confidence: "high",
+      },
     ]);
 
     expect(await screen.findByText(/same normalized name/)).toBeInTheDocument();

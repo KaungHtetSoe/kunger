@@ -10,7 +10,9 @@ const CONFIDENCE_TONE: Record<string, BadgeProps["tone"]> = {
 };
 
 export function ConfidenceBadge({ confidence }: { confidence: string }) {
-  return <Badge label={`${confidence} confidence`} tone={CONFIDENCE_TONE[confidence] ?? "neutral"} />;
+  return (
+    <Badge label={`${confidence} confidence`} tone={CONFIDENCE_TONE[confidence] ?? "neutral"} />
+  );
 }
 
 const RISK_TONE: Record<string, BadgeProps["tone"]> = {

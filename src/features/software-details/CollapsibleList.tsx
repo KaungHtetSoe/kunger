@@ -15,7 +15,12 @@ interface CollapsibleListProps {
  * comes back in one `get_software_item` response, so there's nothing
  * further to fetch; this is purely a display affordance for long lists.
  */
-export function CollapsibleList({ items, initialCount = 8, emptyLabel = "None", monospace = false }: CollapsibleListProps) {
+export function CollapsibleList({
+  items,
+  initialCount = 8,
+  emptyLabel = "None",
+  monospace = false,
+}: CollapsibleListProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (items.length === 0) {

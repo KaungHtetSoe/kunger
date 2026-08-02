@@ -65,7 +65,9 @@ export function SoftwareDetailsPage() {
             {item.description && <p className="text-sm text-neutral-400">{item.description}</p>}
           </header>
 
-          {duplicateGroups.data && <DuplicateBanner itemId={item.id} groups={duplicateGroups.data} />}
+          {duplicateGroups.data && (
+            <DuplicateBanner itemId={item.id} groups={duplicateGroups.data} />
+          )}
 
           <Section title="Overview">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
@@ -78,7 +80,10 @@ export function SoftwareDetailsPage() {
               <Field label="Scope" value={item.scope} />
               <Field label="Installation reason" value={item.installationReason} />
               <Field label="Installed size" value={formatBytes(item.installedSizeBytes)} />
-              <Field label="Installed at" value={item.installedAt ? formatDateTime(item.installedAt) : null} />
+              <Field
+                label="Installed at"
+                value={item.installedAt ? formatDateTime(item.installedAt) : null}
+              />
               <Field label="Repository" value={item.repository} />
               <Field label="Homepage" value={item.homepage} />
               <Field label="License" value={item.license} />
@@ -154,7 +159,10 @@ export function SoftwareDetailsPage() {
           </Section>
 
           {Object.keys(item.metadata).length > 0 && (
-            <Section title="Metadata" subtitle="Raw key-value data collected from the package manager.">
+            <Section
+              title="Metadata"
+              subtitle="Raw key-value data collected from the package manager."
+            >
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
                 {Object.entries(item.metadata).map(([key, value]) => (
                   <Field key={key} label={key} value={value} />

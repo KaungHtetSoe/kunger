@@ -5,16 +5,16 @@ than trusting these numbers as time passes.
 
 ## Current state
 
-| Suite                    | Count               | Command                                     |
-| ------------------------- | -------------------- | -------------------------------------------- |
-| Rust (`src-tauri`)        | 269 tests, 0 failed  | `cd src-tauri && cargo test`                 |
-| Frontend (Vitest)         | 82 tests / 26 files  | `npm test`                                   |
-| Frontend coverage (v8)    | ~88% stmts / 90% lines | `npm run test:coverage`                    |
-| Rust lint                 | clean                | `cd src-tauri && cargo clippy --all-targets` |
-| Rust format                | clean                | `cd src-tauri && cargo fmt --check`          |
-| Frontend lint             | clean, 0 warnings    | `npm run lint`                               |
-| Frontend typecheck        | clean                | `npm run typecheck`                          |
-| Production build          | clean                | `npm run build`                              |
+| Suite                  | Count                  | Command                                      |
+| ---------------------- | ---------------------- | -------------------------------------------- |
+| Rust (`src-tauri`)     | 269 tests, 0 failed    | `cd src-tauri && cargo test`                 |
+| Frontend (Vitest)      | 82 tests / 26 files    | `npm test`                                   |
+| Frontend coverage (v8) | ~88% stmts / 90% lines | `npm run test:coverage`                      |
+| Rust lint              | clean                  | `cd src-tauri && cargo clippy --all-targets` |
+| Rust format            | clean                  | `cd src-tauri && cargo fmt --check`          |
+| Frontend lint          | clean, 0 warnings      | `npm run lint`                               |
+| Frontend typecheck     | clean                  | `npm run typecheck`                          |
+| Production build       | clean                  | `npm run build`                              |
 
 Rust coverage tooling (`cargo-llvm-cov` / `cargo-tarpaulin`) is not wired up — neither is
 available in this sandbox, and a numeric line-coverage % would be less informative than what's

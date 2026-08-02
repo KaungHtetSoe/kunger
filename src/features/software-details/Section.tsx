@@ -22,7 +22,9 @@ export function Field({ label, value }: { label: string; value: string | number 
   return (
     <div>
       <dt className="text-xs text-neutral-500">{label}</dt>
-      <dd className={value === null ? "text-sm italic text-neutral-600" : "text-sm text-neutral-200"}>
+      <dd
+        className={value === null ? "text-sm italic text-neutral-600" : "text-sm text-neutral-200"}
+      >
         {value === null ? "Not available" : value}
       </dd>
     </div>

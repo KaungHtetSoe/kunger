@@ -12,6 +12,45 @@ never requires root privileges.
 See [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) for the full product specification and
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the technical design.
 
+## Screenshots
+
+All screenshots below are from a real scan on Debian (v0.1.0) — 2,094 items across APT and
+manually-installed software, not sample data.
+
+<p align="center">
+  <img src="screenshots/kunger-dashboard.png" width="800" alt="Kunger dashboard with a real scan summary: 2,094 total items broken down by category, package manager distribution, and duplicate-group count">
+</p>
+
+<p align="center">
+  <img src="screenshots/kunger-allsoftware.png" width="800" alt="All Software table view with manager/scope/install-reason filters and sortable columns">
+</p>
+
+<p align="center">
+  <img src="screenshots/kunger-details.png" width="800" alt="Software details view for a driver package, showing classification confidence, the specific reasons behind it, and its dependency graph">
+</p>
+
+<p align="center">
+  <img src="screenshots/kunger-duplicates.png" width="800" alt="Duplicates view flagging apps installed both natively (APT) and via Waydroid's Android environment, without merging or removing either">
+</p>
+
+<details>
+<summary>More screenshots — category views (Applications, Libraries, Runtimes, System)</summary>
+
+<p align="center">
+  <img src="screenshots/kunger-applications.png" width="800" alt="Applications category view">
+</p>
+<p align="center">
+  <img src="screenshots/kunger-libraries.png" width="800" alt="Libraries category view">
+</p>
+<p align="center">
+  <img src="screenshots/kunger-runtimes.png" width="800" alt="Runtimes category view">
+</p>
+<p align="center">
+  <img src="screenshots/kunger-system.png" width="800" alt="System category view, showing drivers and kernel components">
+</p>
+
+</details>
+
 ## Status
 
 v0.1.0, feature-complete for V1 — see [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for what's included,

@@ -19,9 +19,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn setup_terminal() -> io::Result<()> {
+    eprintln!("[DEBUG] Setting up terminal...");
+    eprintln!("[DEBUG] TERM={}", std::env::var("TERM").unwrap_or_else(|_| "UNSET".to_string()));
+
     enable_raw_mode()?;
+    eprintln!("[DEBUG] Raw mode enabled");
+
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    eprintln!("[DEBUG] Alternate screen entered, mouse capture enabled");
+
     Ok(())
 }
 

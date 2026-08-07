@@ -23,6 +23,14 @@ required-features = ["desktop"]
 name = "kunger-cli"
 path = "bin/kunger-cli.rs"
 
+[[bin]]
+name = "test-tui"
+path = "bin/test-tui.rs"
+
+[[bin]]
+name = "kunger-cli-simple"
+path = "bin/kunger-cli-simple.rs"
+
 [features]
 desktop = ["dep:tauri", "dep:tauri-plugin-log", "dep:tauri-build"]
 default = ["desktop"]

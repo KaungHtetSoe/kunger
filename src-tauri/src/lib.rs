@@ -14,6 +14,7 @@ pub mod tui;
 #[cfg(feature = "desktop")]
 pub mod commands;
 
+#[cfg(feature = "desktop")]
 use std::sync::Arc;
 
 #[cfg(feature = "desktop")]

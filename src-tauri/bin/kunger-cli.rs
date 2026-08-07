@@ -50,21 +50,30 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
     let repository = Arc::new(persistence::SqliteScanRepository::new(conn));
 
     let all_items = repository.latest_items()?;
+    eprintln!("[DEBUG] Loaded {} items from database", all_items.len());
+
     if all_items.is_empty() {
         eprintln!("No software items found. Please run a scan first.");
         return Ok(());
     }
 
     let mut app = App::new(all_items);
+    eprintln!("[DEBUG] App created");
 
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+    eprintln!("[DEBUG] Terminal created");
+
     terminal.clear()?;
+    eprintln!("[DEBUG] Terminal cleared");
 
     loop {
+        eprintln!("[DEBUG] Drawing frame...");
         terminal.draw(|f| UI::render(f, &app))?;
+        eprintln!("[DEBUG] Frame drawn, polling for input...");
 
         if event::poll(std::time::Duration::from_millis(100))? {
             let evt = event::read()?;
+            eprintln!("[DEBUG] Got event: {:?}", evt);
             let action = InputHandler::handle_event(&mut app, evt);
             if action == Action::Quit {
                 break;

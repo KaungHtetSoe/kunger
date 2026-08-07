@@ -1,4 +1,4 @@
-use crate::domain::{SoftwareItem, SoftwareCategory, PackageManager, InstallationScope, InstallationReason};
+use crate::domain::{SoftwareItem, SoftwareCategory, PackageManager, InstallationScope, InstallationReason, ClassificationConfidence};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortField {
@@ -12,6 +12,87 @@ pub enum SortField {
 pub enum SortOrder {
     Ascending,
     Descending,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterDimension {
+    Category,
+    Manager,
+    Scope,
+    Reason,
+    Confidence,
+    UpdateAvailable,
+}
+
+impl FilterDimension {
+    pub fn next(self) -> Self {
+        match self {
+            Self::Category => Self::Manager,
+            Self::Manager => Self::Scope,
+            Self::Scope => Self::Reason,
+            Self::Reason => Self::Confidence,
+            Self::Confidence => Self::UpdateAvailable,
+            Self::UpdateAvailable => Self::Category,
+        }
+    }
+
+    pub fn prev(self) -> Self {
+        match self {
+            Self::Category => Self::UpdateAvailable,
+            Self::Manager => Self::Category,
+            Self::Scope => Self::Manager,
+            Self::Reason => Self::Scope,
+            Self::Confidence => Self::Reason,
+            Self::UpdateAvailable => Self::Confidence,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Category => "Category",
+            Self::Manager => "Manager",
+            Self::Scope => "Scope",
+            Self::Reason => "Reason",
+            Self::Confidence => "Confidence",
+            Self::UpdateAvailable => "Updates",
+        }
+    }
+
+    pub fn value_count(self) -> usize {
+        match self {
+            Self::Category => SoftwareCategory::ALL.len(),
+            Self::Manager => PackageManager::ALL.len(),
+            Self::Scope => InstallationScope::ALL.len(),
+            Self::Reason => InstallationReason::ALL.len(),
+            Self::Confidence => ClassificationConfidence::ALL.len(),
+            Self::UpdateAvailable => 3,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateFilter {
+    Any,
+    Available,
+    NotAvailable,
+}
+
+impl UpdateFilter {
+    pub fn cycle(self) -> Self {
+        match self {
+            Self::Any => Self::Available,
+            Self::Available => Self::NotAvailable,
+            Self::NotAvailable => Self::Any,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Any => "Any",
+            Self::Available => "Available",
+            Self::NotAvailable => "Not Available",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +110,8 @@ pub struct App {
     pub manager_filters: Vec<PackageManager>,
     pub scope_filters: Vec<InstallationScope>,
     pub reason_filters: Vec<InstallationReason>,
+    pub confidence_filters: Vec<ClassificationConfidence>,
+    pub update_filter: UpdateFilter,
 
     // Sorting
     pub sort_field: SortField,
@@ -38,6 +121,9 @@ pub struct App {
     pub search_focused: bool,
     pub cursor_position: usize,
     pub detail_view_visible: bool,
+    pub filter_panel_visible: bool,
+    pub filter_dimension: FilterDimension,
+    pub filter_cursor: usize,
     pub is_scanning: bool,
     pub scan_progress: u16,
     pub scan_message: Option<String>,
@@ -57,11 +143,16 @@ impl App {
             manager_filters: vec![],
             scope_filters: vec![],
             reason_filters: vec![],
+            confidence_filters: vec![],
+            update_filter: UpdateFilter::Any,
             sort_field: SortField::Name,
             sort_order: SortOrder::Ascending,
             search_focused: false,
             cursor_position: 0,
             detail_view_visible: false,
+            filter_panel_visible: false,
+            filter_dimension: FilterDimension::Category,
+            filter_cursor: 0,
             is_scanning: false,
             scan_progress: 0,
             scan_message: None,
@@ -168,6 +259,18 @@ impl App {
                     return false;
                 }
 
+                // Confidence filter
+                if !self.confidence_filters.is_empty() && !self.confidence_filters.contains(&item.classification_confidence) {
+                    return false;
+                }
+
+                // Update availability filter
+                match self.update_filter {
+                    UpdateFilter::Available if !item.update_available => return false,
+                    UpdateFilter::NotAvailable if item.update_available => return false,
+                    _ => {}
+                }
+
                 true
             })
             .cloned()
@@ -242,11 +345,31 @@ impl App {
         self.apply_filters();
     }
 
+    pub fn toggle_confidence_filter(&mut self, confidence: ClassificationConfidence) {
+        if self.confidence_filters.contains(&confidence) {
+            self.confidence_filters.retain(|c| c != &confidence);
+        } else {
+            self.confidence_filters.push(confidence);
+        }
+        self.selected_index = 0;
+        self.current_page = 0;
+        self.apply_filters();
+    }
+
+    pub fn cycle_update_filter(&mut self) {
+        self.update_filter = self.update_filter.cycle();
+        self.selected_index = 0;
+        self.current_page = 0;
+        self.apply_filters();
+    }
+
     pub fn clear_all_filters(&mut self) {
         self.category_filters.clear();
         self.manager_filters.clear();
         self.scope_filters.clear();
         self.reason_filters.clear();
+        self.confidence_filters.clear();
+        self.update_filter = UpdateFilter::Any;
         self.search_query.clear();
         self.cursor_position = 0;
         self.selected_index = 0;
@@ -298,6 +421,75 @@ impl App {
         self.detail_view_visible = false;
     }
 
+    pub fn open_filter_panel(&mut self) {
+        self.filter_panel_visible = true;
+    }
+
+    pub fn close_filter_panel(&mut self) {
+        self.filter_panel_visible = false;
+    }
+
+    pub fn filter_dimension_next(&mut self) {
+        self.filter_dimension = self.filter_dimension.next();
+        self.filter_cursor = 0;
+    }
+
+    pub fn filter_dimension_prev(&mut self) {
+        self.filter_dimension = self.filter_dimension.prev();
+        self.filter_cursor = 0;
+    }
+
+    pub fn filter_cursor_next(&mut self) {
+        let count = self.filter_dimension.value_count();
+        if count > 0 {
+            self.filter_cursor = (self.filter_cursor + 1) % count;
+        }
+    }
+
+    pub fn filter_cursor_prev(&mut self) {
+        let count = self.filter_dimension.value_count();
+        if count > 0 {
+            self.filter_cursor = if self.filter_cursor == 0 {
+                count - 1
+            } else {
+                self.filter_cursor - 1
+            };
+        }
+    }
+
+    pub fn toggle_current_filter_value(&mut self) {
+        match self.filter_dimension {
+            FilterDimension::Category => {
+                if self.filter_cursor < SoftwareCategory::ALL.len() {
+                    self.toggle_category_filter(SoftwareCategory::ALL[self.filter_cursor]);
+                }
+            }
+            FilterDimension::Manager => {
+                if self.filter_cursor < PackageManager::ALL.len() {
+                    self.toggle_manager_filter(PackageManager::ALL[self.filter_cursor]);
+                }
+            }
+            FilterDimension::Scope => {
+                if self.filter_cursor < InstallationScope::ALL.len() {
+                    self.toggle_scope_filter(InstallationScope::ALL[self.filter_cursor]);
+                }
+            }
+            FilterDimension::Reason => {
+                if self.filter_cursor < InstallationReason::ALL.len() {
+                    self.toggle_reason_filter(InstallationReason::ALL[self.filter_cursor]);
+                }
+            }
+            FilterDimension::Confidence => {
+                if self.filter_cursor < ClassificationConfidence::ALL.len() {
+                    self.toggle_confidence_filter(ClassificationConfidence::ALL[self.filter_cursor]);
+                }
+            }
+            FilterDimension::UpdateAvailable => {
+                self.cycle_update_filter();
+            }
+        }
+    }
+
     pub fn start_scan(&mut self) {
         self.is_scanning = true;
         self.scan_progress = 0;
@@ -343,11 +535,16 @@ impl App {
         self.manager_filters.clear();
         self.scope_filters.clear();
         self.reason_filters.clear();
+        self.confidence_filters.clear();
+        self.update_filter = UpdateFilter::Any;
         self.selected_index = 0;
         self.current_page = 0;
         self.sort_field = SortField::Name;
         self.sort_order = SortOrder::Ascending;
         self.detail_view_visible = false;
+        self.filter_panel_visible = false;
+        self.filter_dimension = FilterDimension::Category;
+        self.filter_cursor = 0;
         self.is_scanning = false;
         self.scan_progress = 0;
         self.scan_message = None;
@@ -1041,5 +1238,135 @@ mod tests {
         app.fail_scan("Scan cancelled.");
         assert!(!app.is_scanning);
         assert_eq!(app.scan_message.as_deref(), Some("Scan cancelled."));
+    }
+
+    #[test]
+    fn test_confidence_filter() {
+        let mut item1 = create_test_item("Firefox", "firefox", "Web browser");
+        item1.classification_confidence = ClassificationConfidence::High;
+        let mut item2 = create_test_item("Vim", "vim", "Text editor");
+        item2.classification_confidence = ClassificationConfidence::Low;
+
+        let mut app = App::new(vec![item1, item2]);
+        assert_eq!(app.item_count(), 2);
+
+        app.toggle_confidence_filter(ClassificationConfidence::High);
+        assert_eq!(app.item_count(), 1);
+        assert_eq!(
+            app.filtered_items[0].classification_confidence,
+            ClassificationConfidence::High
+        );
+
+        app.toggle_confidence_filter(ClassificationConfidence::Low);
+        assert_eq!(app.item_count(), 2);
+
+        app.toggle_confidence_filter(ClassificationConfidence::High);
+        assert_eq!(app.item_count(), 1);
+        assert_eq!(
+            app.filtered_items[0].classification_confidence,
+            ClassificationConfidence::Low
+        );
+    }
+
+    #[test]
+    fn test_update_filter_cycle() {
+        let mut item1 = create_test_item("Firefox", "firefox", "Web browser");
+        item1.update_available = true;
+        let mut item2 = create_test_item("Vim", "vim", "Text editor");
+        item2.update_available = false;
+
+        let mut app = App::new(vec![item1, item2]);
+        assert_eq!(app.item_count(), 2);
+        assert_eq!(app.update_filter, UpdateFilter::Any);
+
+        app.cycle_update_filter();
+        assert_eq!(app.update_filter, UpdateFilter::Available);
+        assert_eq!(app.item_count(), 1);
+        assert!(app.filtered_items[0].update_available);
+
+        app.cycle_update_filter();
+        assert_eq!(app.update_filter, UpdateFilter::NotAvailable);
+        assert_eq!(app.item_count(), 1);
+        assert!(!app.filtered_items[0].update_available);
+
+        app.cycle_update_filter();
+        assert_eq!(app.update_filter, UpdateFilter::Any);
+        assert_eq!(app.item_count(), 2);
+    }
+
+    #[test]
+    fn test_filter_panel_navigation() {
+        let _app = App::new(vec![]);
+
+        // Test dimension navigation
+        let mut dimension = FilterDimension::Category;
+        for _ in 0..6 {
+            dimension = dimension.next();
+        }
+        assert_eq!(dimension, FilterDimension::Category);
+
+        dimension = FilterDimension::Category;
+        for _ in 0..6 {
+            dimension = dimension.prev();
+        }
+        assert_eq!(dimension, FilterDimension::Category);
+
+        // Test cursor wrapping for different dimensions
+        let mut app = App::new(vec![create_test_item("Test", "test", "Test")]);
+        app.filter_dimension = FilterDimension::UpdateAvailable;
+        app.filter_cursor = 2;
+        app.filter_cursor_next();
+        assert_eq!(app.filter_cursor, 0);
+
+        app.filter_cursor = 0;
+        app.filter_cursor_prev();
+        assert_eq!(app.filter_cursor, 2);
+    }
+
+    #[test]
+    fn test_toggle_current_filter_value_dispatches_by_dimension() {
+        let mut item1 = create_test_item("Firefox", "firefox", "Web browser");
+        item1.category = SoftwareCategory::Application;
+        let mut item2 = create_test_item("Vim", "vim", "Text editor");
+        item2.category = SoftwareCategory::CommandLineTool;
+
+        let mut app = App::new(vec![item1, item2]);
+        app.filter_dimension = FilterDimension::Category;
+        app.filter_cursor = 0;
+
+        app.toggle_current_filter_value();
+        assert_eq!(app.category_filters.len(), 1);
+        assert!(app.category_filters.contains(&SoftwareCategory::Application));
+    }
+
+    #[test]
+    fn test_filter_panel_visibility() {
+        let mut app = App::new(vec![]);
+        assert!(!app.filter_panel_visible);
+
+        app.open_filter_panel();
+        assert!(app.filter_panel_visible);
+
+        app.close_filter_panel();
+        assert!(!app.filter_panel_visible);
+    }
+
+    #[test]
+    fn test_clear_all_filters_with_confidence_and_update() {
+        let mut item = create_test_item("Firefox", "firefox", "Web browser");
+        item.classification_confidence = ClassificationConfidence::High;
+        item.update_available = true;
+
+        let mut app = App::new(vec![item]);
+        app.toggle_confidence_filter(ClassificationConfidence::High);
+        app.cycle_update_filter();
+
+        assert_eq!(app.confidence_filters.len(), 1);
+        assert_ne!(app.update_filter, UpdateFilter::Any);
+
+        app.clear_all_filters();
+        assert_eq!(app.confidence_filters.len(), 0);
+        assert_eq!(app.update_filter, UpdateFilter::Any);
+        assert_eq!(app.item_count(), 1);
     }
 }

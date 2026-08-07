@@ -6,25 +6,39 @@ pub struct UI;
 
 impl UI {
     pub fn render(f: &mut Frame, app: &App) {
+        let filter_panel_height = if app.filter_panel_visible {
+            let value_count = app.filter_dimension.value_count();
+            let max_height = 10;
+            let height = std::cmp::min(value_count + 3, max_height);
+            height as u16
+        } else {
+            3
+        };
+
         let vertical_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(3),  // Search box
-                Constraint::Length(3),  // Filter panel
+                Constraint::Length(filter_panel_height),  // Filter panel
                 Constraint::Min(5),     // Table/Detail pane
                 Constraint::Length(1),  // Status bar
             ])
             .split(f.area());
 
         SearchBox::render(f, &app.search_query, app.cursor_position, vertical_chunks[0]);
-        FilterPanel::render(
-            f,
-            &app.category_filters,
-            &app.manager_filters,
-            &app.scope_filters,
-            &app.reason_filters,
-            vertical_chunks[1],
-        );
+
+        if app.filter_panel_visible {
+            FilterPanel::render_open(f, app, vertical_chunks[1]);
+        } else {
+            FilterPanel::render(
+                f,
+                &app.category_filters,
+                &app.manager_filters,
+                &app.scope_filters,
+                &app.reason_filters,
+                vertical_chunks[1],
+            );
+        }
 
         // Show split layout if detail view is visible
         if app.detail_view_visible {

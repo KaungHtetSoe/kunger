@@ -11,17 +11,37 @@ use kunger_lib::persistence::{self, ScanRepository};
 use dirs::data_dir;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    setup_terminal()?;
+    match setup_terminal() {
+        Ok(_) => {
+            eprintln!("[SIMPLE] Terminal setup succeeded");
+        }
+        Err(e) => {
+            eprintln!("[SIMPLE] ERROR in setup_terminal: {}", e);
+            return Err(Box::new(e));
+        }
+    }
+
     let result = run_app();
-    restore_terminal()?;
+
+    if let Err(e) = restore_terminal() {
+        eprintln!("[SIMPLE] ERROR in restore_terminal: {}", e);
+    }
+
     result
 }
 
 fn setup_terminal() -> io::Result<()> {
     eprintln!("[SIMPLE] Setting up terminal...");
+
+    eprintln!("[SIMPLE] Calling enable_raw_mode()...");
     enable_raw_mode()?;
+    eprintln!("[SIMPLE] enable_raw_mode() succeeded");
+
     let mut stdout = io::stdout();
+    eprintln!("[SIMPLE] Got stdout, calling execute EnterAlternateScreen...");
     execute!(stdout, EnterAlternateScreen)?;
+    eprintln!("[SIMPLE] execute() succeeded");
+
     eprintln!("[SIMPLE] Terminal setup complete");
     Ok(())
 }

@@ -1,0 +1,18 @@
+services:
+  kunger-dev:
+    build:
+      context: ..
+      dockerfile: Dockerfile.dev
+    container_name: kunger-dev
+    volumes:
+      - ..:/kunger
+      - cargo-cache:/usr/local/cargo
+    working_dir: /kunger
+    stdin_open: true
+    tty: true
+    environment:
+      RUST_BACKTRACE: 1
+    command: bash
+
+volumes:
+  cargo-cache:

@@ -26,8 +26,12 @@ fn setup_terminal() -> io::Result<()> {
     eprintln!("[DEBUG] Raw mode enabled");
 
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    eprintln!("[DEBUG] Alternate screen entered, mouse capture enabled");
+
+    // Try to enter alternate screen, but don't fail if it's not supported
+    match execute!(stdout, EnterAlternateScreen, EnableMouseCapture) {
+        Ok(_) => eprintln!("[DEBUG] Alternate screen entered, mouse capture enabled"),
+        Err(e) => eprintln!("[DEBUG] WARNING: Could not enter alternate screen: {}", e),
+    }
 
     Ok(())
 }

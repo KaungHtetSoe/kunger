@@ -32,24 +32,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn setup_terminal() -> io::Result<()> {
     eprintln!("[SIMPLE] Setting up terminal...");
-
-    eprintln!("[SIMPLE] Calling enable_raw_mode()...");
     enable_raw_mode()?;
-    eprintln!("[SIMPLE] enable_raw_mode() succeeded");
-
-    let mut stdout = io::stdout();
-    eprintln!("[SIMPLE] Got stdout, calling execute EnterAlternateScreen...");
-    execute!(stdout, EnterAlternateScreen)?;
-    eprintln!("[SIMPLE] execute() succeeded");
-
     eprintln!("[SIMPLE] Terminal setup complete");
     Ok(())
 }
 
 fn restore_terminal() -> io::Result<()> {
     disable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, LeaveAlternateScreen)?;
     Ok(())
 }
 

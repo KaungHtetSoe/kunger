@@ -48,7 +48,7 @@ impl FilterPanel {
         }
 
         let filter_text = if filters.is_empty() {
-            "No filters active (press F to open filter menu)".to_string()
+            "No filters active".to_string()
         } else {
             filters.join(" | ")
         };

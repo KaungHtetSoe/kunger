@@ -40,6 +40,7 @@ pub struct App {
     pub detail_view_visible: bool,
     pub is_scanning: bool,
     pub scan_progress: u16,
+    pub scan_message: Option<String>,
 }
 
 impl App {
@@ -63,6 +64,7 @@ impl App {
             detail_view_visible: false,
             is_scanning: false,
             scan_progress: 0,
+            scan_message: None,
         }
     }
 
@@ -299,6 +301,7 @@ impl App {
     pub fn start_scan(&mut self) {
         self.is_scanning = true;
         self.scan_progress = 0;
+        self.scan_message = Some("Scanning inventory...".to_string());
     }
 
     pub fn update_scan_progress(&mut self, progress: u16) {
@@ -308,6 +311,29 @@ impl App {
     pub fn finish_scan(&mut self) {
         self.is_scanning = false;
         self.scan_progress = 100;
+    }
+
+    pub fn complete_scan(&mut self, message: impl Into<String>) {
+        self.finish_scan();
+        self.scan_message = Some(message.into());
+    }
+
+    pub fn fail_scan(&mut self, message: impl Into<String>) {
+        self.is_scanning = false;
+        self.scan_progress = 0;
+        self.scan_message = Some(message.into());
+    }
+
+    pub fn set_scan_message(&mut self, message: impl Into<String>) {
+        self.scan_message = Some(message.into());
+    }
+
+    pub fn replace_items(&mut self, items: Vec<SoftwareItem>) {
+        self.all_items = items;
+        self.selected_index = 0;
+        self.current_page = 0;
+        self.scroll_offset = 0;
+        self.apply_filters();
     }
 
     pub fn reset(&mut self) {
@@ -324,6 +350,7 @@ impl App {
         self.detail_view_visible = false;
         self.is_scanning = false;
         self.scan_progress = 0;
+        self.scan_message = None;
         self.filtered_items = self.all_items.clone();
     }
 }
@@ -979,5 +1006,40 @@ mod tests {
         // Over 100 should clamp
         app.update_scan_progress(200);
         assert_eq!(app.scan_progress, 100);
+    }
+
+    #[test]
+    fn replace_items_preserves_active_filters_and_resets_selection() {
+        let mut app = App::new(vec![create_test_item("Firefox", "firefox", "Web browser")]);
+        app.toggle_category_filter(SoftwareCategory::Application);
+        app.selected_index = 1;
+        app.current_page = 1;
+
+        let mut matching = create_test_item("Vim", "vim", "Text editor");
+        matching.category = SoftwareCategory::Application;
+        let mut filtered_out = create_test_item("Git", "git", "Version control");
+        filtered_out.category = SoftwareCategory::CommandLineTool;
+        app.replace_items(vec![matching, filtered_out]);
+
+        assert_eq!(app.all_items.len(), 2);
+        assert_eq!(app.item_count(), 1);
+        assert_eq!(app.selected_index, 0);
+        assert_eq!(app.current_page, 0);
+        assert_eq!(app.selected_item().unwrap().display_name, "Vim");
+    }
+
+    #[test]
+    fn scan_messages_cover_completion_and_failure() {
+        let mut app = App::new(vec![]);
+        app.start_scan();
+        assert_eq!(app.scan_message.as_deref(), Some("Scanning inventory..."));
+
+        app.complete_scan("Scan complete: 0 items found.");
+        assert!(!app.is_scanning);
+        assert_eq!(app.scan_message.as_deref(), Some("Scan complete: 0 items found."));
+
+        app.fail_scan("Scan cancelled.");
+        assert!(!app.is_scanning);
+        assert_eq!(app.scan_message.as_deref(), Some("Scan cancelled."));
     }
 }

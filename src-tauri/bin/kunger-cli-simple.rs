@@ -33,11 +33,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn setup_terminal() -> io::Result<()> {
     eprintln!("[SIMPLE] Setting up terminal...");
     enable_raw_mode()?;
+    eprintln!("[SIMPLE] Raw mode enabled");
+
+    let mut stdout = io::stdout();
+    match execute!(stdout, EnterAlternateScreen) {
+        Ok(_) => eprintln!("[SIMPLE] Entered alternate screen"),
+        Err(e) => eprintln!("[SIMPLE] WARNING: Could not enter alternate screen: {}", e),
+    }
+
     eprintln!("[SIMPLE] Terminal setup complete");
     Ok(())
 }
 
 fn restore_terminal() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    let _ = execute!(stdout, LeaveAlternateScreen);
     disable_raw_mode()?;
     Ok(())
 }

@@ -49,9 +49,18 @@ cargo test test_cli_workflow_1_basic_loading_and_navigation -- --nocapture
 cargo build --bin kunger-cli
 ```
 
-### 4. Create Test Database
+### 4. Start the CLI
 
-Before running the CLI, you need to set up test data:
+The CLI starts with an empty inventory when no cache exists. Press `F5` to run
+a scan; press `Esc` to cancel an active scan and `q` to quit.
+
+```bash
+./target/debug/kunger-cli
+```
+
+### 5. Optional: Create Test Database
+
+To test navigation and filtering against known data, preload the cache:
 
 ```bash
 # Option A: Use SQLite directly to insert test data
@@ -61,7 +70,7 @@ sqlite3 ~/.local/share/kunger/kunger.db < test_data.sql
 # (requires X11 forwarding or running on your host machine)
 ```
 
-### 5. Run the CLI Interactive
+### 6. Run the CLI Interactive
 
 ```bash
 # Run the CLI with your user data directory
@@ -89,7 +98,7 @@ cargo test --lib tui::app -- --test-threads=1
 - Detail view state
 - Scan state transitions
 
-**Expected:** 37 tests passing
+**Expected:** 42 tests passing
 
 ### Integration Tests
 
@@ -114,7 +123,7 @@ cd /kunger/src-tauri
 cargo test --lib tui::app --test tui_integration_test
 ```
 
-**Expected:** 52 tests passing
+**Expected:** 57 tests passing
 
 ## Testing with Real Data
 
@@ -184,17 +193,11 @@ RUST_BACKTRACE=1 cargo test --lib tui::app -- --nocapture
 cargo test test_search_filtering -- --nocapture --exact
 ```
 
-### CLI can't find database
+### CLI starts with no items
 
 ```bash
-# Check default data directory
-ls -la ~/.local/share/kunger/
-
-# Create directory if missing
-mkdir -p ~/.local/share/kunger/
-
-# Check if database exists
-sqlite3 ~/.local/share/kunger/kunger.db ".tables"
+# Press F5 to create and populate the cache from installed software.
+# If it remains empty, inspect the provider commands available in the container.
 ```
 
 ## Advanced: Persistent Container

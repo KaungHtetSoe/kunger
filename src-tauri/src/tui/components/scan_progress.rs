@@ -22,7 +22,8 @@ impl ScanProgress {
                 .title(" Scanning... ")
                 .borders(Borders::ALL))
             .gauge_style(Style::default().fg(Color::Cyan))
-            .percent(progress as u16);
+            .ratio(progress as f64 / 100.0)
+            .label("Scanning inventory... Esc to cancel");
 
         f.render_widget(gauge, area);
     }

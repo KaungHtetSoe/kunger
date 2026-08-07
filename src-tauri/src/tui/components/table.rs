@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Table, Row, Cell, BorderType};
+use ratatui::widgets::{Block, Borders, Paragraph, Table, Row, Cell, BorderType};
 use crate::tui::app::App;
 
 pub struct TableWidget;
@@ -7,6 +7,24 @@ pub struct TableWidget;
 impl TableWidget {
     pub fn render(f: &mut Frame, app: &App, area: Rect) {
         let items = app.visible_items();
+
+        if items.is_empty() {
+            let message = if app.all_items.is_empty() {
+                "No inventory available yet. Press F5 to scan."
+            } else {
+                "No items match the current search or filters."
+            };
+            let empty_state = Paragraph::new(message)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::DarkGray))
+                .block(Block::default()
+                    .title(" Software Items ")
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded));
+            f.render_widget(empty_state, area);
+            return;
+        }
+
         let header = Row::new(vec!["Name", "Category", "Manager", "Version"])
             .style(Style::default().bold().fg(Color::Cyan))
             .bottom_margin(1);

@@ -19,9 +19,13 @@ impl StatusBar {
             "No items to display".to_string()
         };
 
-        let help_text = " ↑/↓: Navigate | PgUp/PgDn: Page | q: Quit";
+        let status_text = if app.is_scanning {
+            "Scanning inventory... Esc: Cancel | q: Quit".to_string()
+        } else {
+            format!("{} | F5: Scan | q: Quit", app.scan_message.clone().unwrap_or(page_info))
+        };
 
-        let status = Paragraph::new(format!("{:<60} {}", page_info, help_text))
+        let status = Paragraph::new(status_text)
             .style(Style::default().bg(Color::DarkGray).fg(Color::White));
 
         f.render_widget(status, area);

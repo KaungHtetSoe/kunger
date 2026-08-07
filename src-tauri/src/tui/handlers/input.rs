@@ -1,4 +1,4 @@
-use crossterm::event::{Event, KeyCode, KeyEvent};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crate::tui::app::App;
 
 pub struct InputHandler;
@@ -9,6 +9,8 @@ pub enum Action {
     SelectPrevious,
     PageDown,
     PageUp,
+    StartScan,
+    CancelScan,
     Quit,
     None,
 }
@@ -22,6 +24,22 @@ impl InputHandler {
     }
 
     fn handle_key(app: &mut App, key: KeyEvent) -> Action {
+        if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            return Action::Quit;
+        }
+
+        if app.is_scanning {
+            return match key.code {
+                KeyCode::Esc => Action::CancelScan,
+                KeyCode::Char('q') => Action::Quit,
+                _ => Action::None,
+            };
+        }
+
+        if key.code == KeyCode::F(5) {
+            return Action::StartScan;
+        }
+
         // Handle search input when focused
         if app.search_focused {
             return Self::handle_search_input(app, key);
@@ -76,11 +94,6 @@ impl InputHandler {
                 app.toggle_sort_order();
                 Action::None
             }
-            KeyCode::F(5) => {
-                // F5 to trigger scan
-                app.start_scan();
-                Action::None
-            }
             _ => Action::None,
         }
     }
@@ -125,5 +138,49 @@ impl InputHandler {
             }
             _ => Action::None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(code: KeyCode, modifiers: KeyModifiers) -> Event {
+        Event::Key(KeyEvent::new(code, modifiers))
+    }
+
+    #[test]
+    fn f5_requests_a_scan_when_idle() {
+        let mut app = App::new(vec![]);
+
+        assert_eq!(
+            InputHandler::handle_event(&mut app, key(KeyCode::F(5), KeyModifiers::NONE)),
+            Action::StartScan
+        );
+        assert!(!app.is_scanning, "the CLI starts the worker after handling the action");
+    }
+
+    #[test]
+    fn escape_cancels_an_active_scan() {
+        let mut app = App::new(vec![]);
+        app.start_scan();
+
+        assert_eq!(
+            InputHandler::handle_event(&mut app, key(KeyCode::Esc, KeyModifiers::NONE)),
+            Action::CancelScan
+        );
+    }
+
+    #[test]
+    fn control_c_quits_without_clearing_filters() {
+        let mut app = App::new(vec![]);
+
+        assert_eq!(
+            InputHandler::handle_event(
+                &mut app,
+                key(KeyCode::Char('c'), KeyModifiers::CONTROL),
+            ),
+            Action::Quit
+        );
     }
 }

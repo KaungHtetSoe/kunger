@@ -24,11 +24,11 @@ name = "kunger-cli"
 path = "bin/kunger-cli.rs"
 
 [features]
-desktop = ["dep:tauri", "dep:tauri-plugin-log"]
+desktop = ["dep:tauri", "dep:tauri-plugin-log", "dep:tauri-build"]
 default = ["desktop"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2", features = [], optional = true }
 
 [dependencies]
 log = "0.4"

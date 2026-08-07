@@ -10,6 +10,7 @@ pub mod inventory;
 pub mod persistence;
 pub mod process;
 pub mod providers;
+pub mod tui;
 
 use std::sync::Arc;
 

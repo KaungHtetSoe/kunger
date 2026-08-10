@@ -1,6 +1,6 @@
+use crate::tui::app::App;
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
-use crate::tui::app::App;
 
 pub struct StatusBar;
 

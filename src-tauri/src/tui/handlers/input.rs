@@ -1,5 +1,5 @@
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crate::tui::app::App;
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
 pub struct InputHandler;
 
@@ -198,7 +198,10 @@ mod tests {
             InputHandler::handle_event(&mut app, key(KeyCode::F(5), KeyModifiers::NONE)),
             Action::StartScan
         );
-        assert!(!app.is_scanning, "the CLI starts the worker after handling the action");
+        assert!(
+            !app.is_scanning,
+            "the CLI starts the worker after handling the action"
+        );
     }
 
     #[test]
@@ -217,10 +220,7 @@ mod tests {
         let mut app = App::new(vec![]);
 
         assert_eq!(
-            InputHandler::handle_event(
-                &mut app,
-                key(KeyCode::Char('c'), KeyModifiers::CONTROL),
-            ),
+            InputHandler::handle_event(&mut app, key(KeyCode::Char('c'), KeyModifiers::CONTROL),),
             Action::Quit
         );
     }
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn space_toggles_highlighted_value() {
-        use crate::domain::{SoftwareCategory, PackageManager};
+        use crate::domain::{PackageManager, SoftwareCategory};
 
         let mut item = SoftwareItem::new("Test", "test", "Test", PackageManager::Unknown);
         item.category = SoftwareCategory::Application;

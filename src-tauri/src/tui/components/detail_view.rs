@@ -1,6 +1,6 @@
+use crate::domain::SoftwareItem;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use crate::domain::SoftwareItem;
 
 pub struct DetailView;
 
@@ -49,20 +49,28 @@ impl DetailView {
         // Classification
         details.push_str(&format!("Category: {:?}\n", item.category));
         if !item.secondary_categories.is_empty() {
-            let secondary = item.secondary_categories.iter()
+            let secondary = item
+                .secondary_categories
+                .iter()
                 .map(|c| format!("{:?}", c))
                 .collect::<Vec<_>>()
                 .join(", ");
             details.push_str(&format!("Secondary Categories: {}\n", secondary));
         }
-        details.push_str(&format!("Classification Confidence: {:?}\n", item.classification_confidence));
+        details.push_str(&format!(
+            "Classification Confidence: {:?}\n",
+            item.classification_confidence
+        ));
 
         details.push('\n');
 
         // Installation information
         details.push_str(&format!("Package Manager: {:?}\n", item.package_manager));
         details.push_str(&format!("Installation Scope: {:?}\n", item.scope));
-        details.push_str(&format!("Installation Reason: {:?}\n", item.installation_reason));
+        details.push_str(&format!(
+            "Installation Reason: {:?}\n",
+            item.installation_reason
+        ));
 
         if let Some(source) = &item.package_source {
             details.push_str(&format!("Package Source: {}\n", source));
@@ -87,7 +95,10 @@ impl DetailView {
                 details.push_str(&format!("  • {}\n", dep));
             }
             if item.reverse_dependencies.len() > 5 {
-                details.push_str(&format!("  ... and {} more\n", item.reverse_dependencies.len() - 5));
+                details.push_str(&format!(
+                    "  ... and {} more\n",
+                    item.reverse_dependencies.len() - 5
+                ));
             }
         }
 

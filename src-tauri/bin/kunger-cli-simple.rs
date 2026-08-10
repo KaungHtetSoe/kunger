@@ -1,14 +1,14 @@
-use std::io;
-use std::sync::Arc;
 use crossterm::{
     event::{self, KeyCode, KeyEvent},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use dirs::data_dir;
+use kunger_lib::persistence::{self, ScanRepository};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders};
-use kunger_lib::persistence::{self, ScanRepository};
-use dirs::data_dir;
+use std::io;
+use std::sync::Arc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     match setup_terminal() {
@@ -82,7 +82,8 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("[SIMPLE] Drawing frame for page {}...", page);
 
         terminal.draw(|f| {
-            let items = &all_items[(page * page_size)..std::cmp::min((page + 1) * page_size, all_items.len())];
+            let items = &all_items
+                [(page * page_size)..std::cmp::min((page + 1) * page_size, all_items.len())];
 
             // Simple vertical layout
             let chunks = Layout::default()
@@ -113,13 +114,20 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
                 rows.push(ratatui::text::Line::raw(row));
             }
 
-            let items_display = ratatui::widgets::Paragraph::new(rows)
-                .block(Block::default().borders(Borders::ALL).title(format!("Items (page {}/{}))", page + 1, (all_items.len() + page_size - 1) / page_size)));
+            let items_display = ratatui::widgets::Paragraph::new(rows).block(
+                Block::default().borders(Borders::ALL).title(format!(
+                    "Items (page {}/{}))",
+                    page + 1,
+                    (all_items.len() + page_size - 1) / page_size
+                )),
+            );
             f.render_widget(items_display, chunks[1]);
 
             // Footer
-            let footer = ratatui::widgets::Paragraph::new("Press 'n' for next, 'p' for previous, 'q' to quit")
-                .alignment(Alignment::Center);
+            let footer = ratatui::widgets::Paragraph::new(
+                "Press 'n' for next, 'p' for previous, 'q' to quit",
+            )
+            .alignment(Alignment::Center);
             f.render_widget(footer, chunks[2]);
         })?;
 
@@ -129,7 +137,9 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
             if let crossterm::event::Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Char('n') => page = (page + 1).min((all_items.len() + page_size - 1) / page_size - 1),
+                    KeyCode::Char('n') => {
+                        page = (page + 1).min((all_items.len() + page_size - 1) / page_size - 1)
+                    }
                     KeyCode::Char('p') => page = page.saturating_sub(1),
                     _ => {}
                 }

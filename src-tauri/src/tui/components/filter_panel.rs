@@ -1,7 +1,10 @@
+use crate::domain::{
+    ClassificationConfidence, InstallationReason, InstallationScope, PackageManager,
+    SoftwareCategory,
+};
+use crate::tui::app::{App, FilterDimension, UpdateFilter};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Tabs};
-use crate::domain::{SoftwareCategory, PackageManager, InstallationScope, InstallationReason, ClassificationConfidence};
-use crate::tui::app::{App, FilterDimension, UpdateFilter};
 
 pub struct FilterPanel;
 
@@ -17,7 +20,8 @@ impl FilterPanel {
         let mut filters = vec![];
 
         if !categories.is_empty() {
-            let cats = categories.iter()
+            let cats = categories
+                .iter()
                 .map(|c| format!("{:?}", c))
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -25,7 +29,8 @@ impl FilterPanel {
         }
 
         if !managers.is_empty() {
-            let mgrs = managers.iter()
+            let mgrs = managers
+                .iter()
                 .map(|m| format!("{:?}", m))
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -33,7 +38,8 @@ impl FilterPanel {
         }
 
         if !scopes.is_empty() {
-            let scs = scopes.iter()
+            let scs = scopes
+                .iter()
                 .map(|s| format!("{:?}", s))
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -41,7 +47,8 @@ impl FilterPanel {
         }
 
         if !reasons.is_empty() {
-            let rsns = reasons.iter()
+            let rsns = reasons
+                .iter()
                 .map(|r| format!("{:?}", r))
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -62,9 +69,7 @@ impl FilterPanel {
 
         let paragraph = Paragraph::new(filter_text)
             .style(style)
-            .block(Block::default()
-                .title(" Filters ")
-                .borders(Borders::ALL));
+            .block(Block::default().title(" Filters ").borders(Borders::ALL));
 
         f.render_widget(paragraph, area);
     }
@@ -117,73 +122,64 @@ impl FilterPanel {
 
     fn get_dimension_items(app: &App) -> Vec<ListItem<'_>> {
         match app.filter_dimension {
-            FilterDimension::Category => {
-                SoftwareCategory::ALL
-                    .iter()
-                    .map(|c| {
-                        let is_checked = app.category_filters.contains(c);
-                        let checkbox = if is_checked { "[x]" } else { "[ ]" };
-                        ListItem::new(format!("{} {:?}", checkbox, c))
-                    })
-                    .collect()
-            }
-            FilterDimension::Manager => {
-                PackageManager::ALL
-                    .iter()
-                    .map(|m| {
-                        let is_checked = app.manager_filters.contains(m);
-                        let checkbox = if is_checked { "[x]" } else { "[ ]" };
-                        ListItem::new(format!("{} {:?}", checkbox, m))
-                    })
-                    .collect()
-            }
-            FilterDimension::Scope => {
-                InstallationScope::ALL
-                    .iter()
-                    .map(|s| {
-                        let is_checked = app.scope_filters.contains(s);
-                        let checkbox = if is_checked { "[x]" } else { "[ ]" };
-                        ListItem::new(format!("{} {:?}", checkbox, s))
-                    })
-                    .collect()
-            }
-            FilterDimension::Reason => {
-                InstallationReason::ALL
-                    .iter()
-                    .map(|r| {
-                        let is_checked = app.reason_filters.contains(r);
-                        let checkbox = if is_checked { "[x]" } else { "[ ]" };
-                        ListItem::new(format!("{} {:?}", checkbox, r))
-                    })
-                    .collect()
-            }
-            FilterDimension::Confidence => {
-                ClassificationConfidence::ALL
-                    .iter()
-                    .map(|c| {
-                        let is_checked = app.confidence_filters.contains(c);
-                        let checkbox = if is_checked { "[x]" } else { "[ ]" };
-                        ListItem::new(format!("{} {:?}", checkbox, c))
-                    })
-                    .collect()
-            }
+            FilterDimension::Category => SoftwareCategory::ALL
+                .iter()
+                .map(|c| {
+                    let is_checked = app.category_filters.contains(c);
+                    let checkbox = if is_checked { "[x]" } else { "[ ]" };
+                    ListItem::new(format!("{} {:?}", checkbox, c))
+                })
+                .collect(),
+            FilterDimension::Manager => PackageManager::ALL
+                .iter()
+                .map(|m| {
+                    let is_checked = app.manager_filters.contains(m);
+                    let checkbox = if is_checked { "[x]" } else { "[ ]" };
+                    ListItem::new(format!("{} {:?}", checkbox, m))
+                })
+                .collect(),
+            FilterDimension::Scope => InstallationScope::ALL
+                .iter()
+                .map(|s| {
+                    let is_checked = app.scope_filters.contains(s);
+                    let checkbox = if is_checked { "[x]" } else { "[ ]" };
+                    ListItem::new(format!("{} {:?}", checkbox, s))
+                })
+                .collect(),
+            FilterDimension::Reason => InstallationReason::ALL
+                .iter()
+                .map(|r| {
+                    let is_checked = app.reason_filters.contains(r);
+                    let checkbox = if is_checked { "[x]" } else { "[ ]" };
+                    ListItem::new(format!("{} {:?}", checkbox, r))
+                })
+                .collect(),
+            FilterDimension::Confidence => ClassificationConfidence::ALL
+                .iter()
+                .map(|c| {
+                    let is_checked = app.confidence_filters.contains(c);
+                    let checkbox = if is_checked { "[x]" } else { "[ ]" };
+                    ListItem::new(format!("{} {:?}", checkbox, c))
+                })
+                .collect(),
             FilterDimension::UpdateAvailable => {
                 let any_checked = app.update_filter == UpdateFilter::Any;
                 let available_checked = app.update_filter == UpdateFilter::Available;
                 let not_available_checked = app.update_filter == UpdateFilter::NotAvailable;
 
                 vec![
-                    ListItem::new(format!(
-                        "{} Any",
-                        if any_checked { "(•)" } else { "( )" }
-                    )),
+                    ListItem::new(format!("{} Any", if any_checked { "(•)" } else { "( )" })),
                     ListItem::new(format!(
                         "{} Available",
                         if available_checked { "(•)" } else { "( )" }
                     )),
                     ListItem::new(format!(
                         "{} Not Available",
-                        if not_available_checked { "(•)" } else { "( )" }
+                        if not_available_checked {
+                            "(•)"
+                        } else {
+                            "( )"
+                        }
                     )),
                 ]
             }

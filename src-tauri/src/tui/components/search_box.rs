@@ -19,17 +19,12 @@ impl SearchBox {
 
         let paragraph = Paragraph::new(display_query)
             .style(style)
-            .block(Block::default()
-                .title(" Search ")
-                .borders(Borders::ALL));
+            .block(Block::default().title(" Search ").borders(Borders::ALL));
 
         f.render_widget(paragraph, area);
 
         if !search_query.is_empty() && cursor_position <= search_query.len() {
-            f.set_cursor_position((
-                area.x + cursor_position as u16 + 1,
-                area.y + 1,
-            ));
+            f.set_cursor_position((area.x + cursor_position as u16 + 1, area.y + 1));
         }
     }
 }

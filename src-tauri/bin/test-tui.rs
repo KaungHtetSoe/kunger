@@ -1,10 +1,10 @@
-use std::io;
 use crossterm::{
     event::{self, KeyCode, KeyEvent},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::prelude::*;
+use std::io;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("[TEST] Starting minimal TUI test...");
@@ -45,8 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ratatui::text::Line::raw("Press 'q' to quit"),
         ];
 
-        let paragraph = ratatui::widgets::Paragraph::new(text)
-            .alignment(Alignment::Center);
+        let paragraph = ratatui::widgets::Paragraph::new(text).alignment(Alignment::Center);
 
         f.render_widget(paragraph, inner);
     })?;
@@ -55,8 +54,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         if event::poll(std::time::Duration::from_millis(100))? {
-            if let crossterm::event::Event::Key(KeyEvent { code: KeyCode::Char('q'), .. }) =
-                event::read()?
+            if let crossterm::event::Event::Key(KeyEvent {
+                code: KeyCode::Char('q'),
+                ..
+            }) = event::read()?
             {
                 break;
             }

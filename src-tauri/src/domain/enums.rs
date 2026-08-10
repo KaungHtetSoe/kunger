@@ -137,8 +137,13 @@ pub enum ClassificationConfidence {
 }
 
 impl ClassificationConfidence {
-    pub const ALL: &'static [Self] =
-        &[Self::Unknown, Self::Low, Self::Medium, Self::High, Self::Certain];
+    pub const ALL: &'static [Self] = &[
+        Self::Unknown,
+        Self::Low,
+        Self::Medium,
+        Self::High,
+        Self::Certain,
+    ];
 }
 
 /// Overall status of a full inventory scan (across all providers).

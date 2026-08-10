@@ -1,4 +1,7 @@
-use crate::domain::{SoftwareItem, SoftwareCategory, PackageManager, InstallationScope, InstallationReason, ClassificationConfidence};
+use crate::domain::{
+    ClassificationConfidence, InstallationReason, InstallationScope, PackageManager,
+    SoftwareCategory, SoftwareItem,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortField {
@@ -226,26 +229,35 @@ impl App {
     }
 
     pub fn apply_filters(&mut self) {
-        self.filtered_items = self.all_items.iter()
+        self.filtered_items = self
+            .all_items
+            .iter()
             .filter(|item| {
                 // Search filter
                 if !self.search_query.is_empty() {
                     let query_lower = self.search_query.to_lowercase();
-                    let matches_search = item.display_name.to_lowercase().contains(&query_lower) ||
-                        item.package_name.to_lowercase().contains(&query_lower) ||
-                        item.description.as_ref().map_or(false, |d| d.to_lowercase().contains(&query_lower));
+                    let matches_search = item.display_name.to_lowercase().contains(&query_lower)
+                        || item.package_name.to_lowercase().contains(&query_lower)
+                        || item
+                            .description
+                            .as_ref()
+                            .map_or(false, |d| d.to_lowercase().contains(&query_lower));
                     if !matches_search {
                         return false;
                     }
                 }
 
                 // Category filter
-                if !self.category_filters.is_empty() && !self.category_filters.contains(&item.category) {
+                if !self.category_filters.is_empty()
+                    && !self.category_filters.contains(&item.category)
+                {
                     return false;
                 }
 
                 // Manager filter
-                if !self.manager_filters.is_empty() && !self.manager_filters.contains(&item.package_manager) {
+                if !self.manager_filters.is_empty()
+                    && !self.manager_filters.contains(&item.package_manager)
+                {
                     return false;
                 }
 
@@ -255,12 +267,18 @@ impl App {
                 }
 
                 // Reason filter
-                if !self.reason_filters.is_empty() && !self.reason_filters.contains(&item.installation_reason) {
+                if !self.reason_filters.is_empty()
+                    && !self.reason_filters.contains(&item.installation_reason)
+                {
                     return false;
                 }
 
                 // Confidence filter
-                if !self.confidence_filters.is_empty() && !self.confidence_filters.contains(&item.classification_confidence) {
+                if !self.confidence_filters.is_empty()
+                    && !self
+                        .confidence_filters
+                        .contains(&item.classification_confidence)
+                {
                     return false;
                 }
 
@@ -279,13 +297,17 @@ impl App {
         // Apply sorting
         match self.sort_field {
             SortField::Name => {
-                self.filtered_items.sort_by(|a, b| a.display_name.cmp(&b.display_name));
+                self.filtered_items
+                    .sort_by(|a, b| a.display_name.cmp(&b.display_name));
             }
             SortField::Category => {
-                self.filtered_items.sort_by(|a, b| format!("{:?}", a.category).cmp(&format!("{:?}", b.category)));
+                self.filtered_items
+                    .sort_by(|a, b| format!("{:?}", a.category).cmp(&format!("{:?}", b.category)));
             }
             SortField::Manager => {
-                self.filtered_items.sort_by(|a, b| format!("{:?}", a.package_manager).cmp(&format!("{:?}", b.package_manager)));
+                self.filtered_items.sort_by(|a, b| {
+                    format!("{:?}", a.package_manager).cmp(&format!("{:?}", b.package_manager))
+                });
             }
             SortField::Version => {
                 self.filtered_items.sort_by(|a, b| {
@@ -481,7 +503,9 @@ impl App {
             }
             FilterDimension::Confidence => {
                 if self.filter_cursor < ClassificationConfidence::ALL.len() {
-                    self.toggle_confidence_filter(ClassificationConfidence::ALL[self.filter_cursor]);
+                    self.toggle_confidence_filter(
+                        ClassificationConfidence::ALL[self.filter_cursor],
+                    );
                 }
             }
             FilterDimension::UpdateAvailable => {
@@ -555,15 +579,10 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{SoftwareCategory, PackageManager, ClassificationConfidence};
+    use crate::domain::{ClassificationConfidence, PackageManager, SoftwareCategory};
 
     fn create_test_item(name: &str, package_name: &str, description: &str) -> SoftwareItem {
-        let mut item = SoftwareItem::new(
-            name,
-            package_name,
-            name,
-            PackageManager::Apt,
-        );
+        let mut item = SoftwareItem::new(name, package_name, name, PackageManager::Apt);
         item.description = Some(description.to_string());
         item.version = Some("1.0".to_string());
         item.category = SoftwareCategory::Application;
@@ -889,7 +908,9 @@ mod tests {
         let mut app = App::new(items);
         app.apply_filters();
 
-        let names: Vec<_> = app.filtered_items.iter()
+        let names: Vec<_> = app
+            .filtered_items
+            .iter()
             .map(|i| i.display_name.as_str())
             .collect();
         assert_eq!(names, vec!["Bash", "Fish", "Zsh"]);
@@ -906,7 +927,9 @@ mod tests {
         app.sort_order = SortOrder::Descending;
         app.apply_filters();
 
-        let names: Vec<_> = app.filtered_items.iter()
+        let names: Vec<_> = app
+            .filtered_items
+            .iter()
             .map(|i| i.display_name.as_str())
             .collect();
         assert_eq!(names, vec!["Zsh", "Fish", "Bash"]);
@@ -927,9 +950,7 @@ mod tests {
         app.sort_field = SortField::Category;
         app.apply_filters();
 
-        let categories: Vec<_> = app.filtered_items.iter()
-            .map(|i| i.category)
-            .collect();
+        let categories: Vec<_> = app.filtered_items.iter().map(|i| i.category).collect();
         assert_eq!(categories[0], SoftwareCategory::Application);
     }
 
@@ -949,7 +970,9 @@ mod tests {
         app.toggle_manager_filter(PackageManager::Apt);
 
         assert_eq!(app.item_count(), 2);
-        let names: Vec<_> = app.filtered_items.iter()
+        let names: Vec<_> = app
+            .filtered_items
+            .iter()
             .map(|i| i.display_name.as_str())
             .collect();
         assert!(names.contains(&"Firefox"));
@@ -1233,7 +1256,10 @@ mod tests {
 
         app.complete_scan("Scan complete: 0 items found.");
         assert!(!app.is_scanning);
-        assert_eq!(app.scan_message.as_deref(), Some("Scan complete: 0 items found."));
+        assert_eq!(
+            app.scan_message.as_deref(),
+            Some("Scan complete: 0 items found.")
+        );
 
         app.fail_scan("Scan cancelled.");
         assert!(!app.is_scanning);
@@ -1336,7 +1362,9 @@ mod tests {
 
         app.toggle_current_filter_value();
         assert_eq!(app.category_filters.len(), 1);
-        assert!(app.category_filters.contains(&SoftwareCategory::Application));
+        assert!(app
+            .category_filters
+            .contains(&SoftwareCategory::Application));
     }
 
     #[test]

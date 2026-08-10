@@ -1,11 +1,15 @@
-use kunger_lib::domain::{SoftwareItem, SoftwareCategory, PackageManager, InstallationScope, InstallationReason, ClassificationConfidence};
-use kunger_lib::tui::{App, handlers::InputHandler};
-use crossterm::event::{Event, KeyEvent, KeyCode, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use kunger_lib::domain::{
+    ClassificationConfidence, InstallationReason, InstallationScope, PackageManager,
+    SoftwareCategory, SoftwareItem,
+};
+use kunger_lib::tui::{handlers::InputHandler, App};
 
 fn create_test_items() -> Vec<SoftwareItem> {
     vec![
         {
-            let mut item = SoftwareItem::new("apt:firefox", "firefox", "Firefox", PackageManager::Apt);
+            let mut item =
+                SoftwareItem::new("apt:firefox", "firefox", "Firefox", PackageManager::Apt);
             item.description = Some("Web browser".to_string());
             item.version = Some("128.0".to_string());
             item.category = SoftwareCategory::Application;
@@ -23,7 +27,12 @@ fn create_test_items() -> Vec<SoftwareItem> {
             item
         },
         {
-            let mut item = SoftwareItem::new("flatpak:com.slack.Slack", "slack", "Slack", PackageManager::Flatpak);
+            let mut item = SoftwareItem::new(
+                "flatpak:com.slack.Slack",
+                "slack",
+                "Slack",
+                PackageManager::Flatpak,
+            );
             item.description = Some("Messaging platform".to_string());
             item.version = Some("4.35".to_string());
             item.category = SoftwareCategory::Application;
@@ -32,7 +41,8 @@ fn create_test_items() -> Vec<SoftwareItem> {
             item
         },
         {
-            let mut item = SoftwareItem::new("apt:libx11", "libx11", "X11 Library", PackageManager::Apt);
+            let mut item =
+                SoftwareItem::new("apt:libx11", "libx11", "X11 Library", PackageManager::Apt);
             item.description = Some("X Window System client library".to_string());
             item.version = Some("1.8.7".to_string());
             item.category = SoftwareCategory::Library;
@@ -141,7 +151,9 @@ fn test_cli_workflow_4_filter_by_category() {
     assert_eq!(app.item_count(), 3); // Firefox, Slack, VLC
 
     // Verify correct items
-    let names: Vec<_> = app.filtered_items.iter()
+    let names: Vec<_> = app
+        .filtered_items
+        .iter()
         .map(|i| i.display_name.as_str())
         .collect();
     assert!(names.contains(&"Firefox"));
@@ -182,7 +194,10 @@ fn test_cli_workflow_7_filter_by_reason() {
     // Filter to only Manual installations
     app.toggle_reason_filter(InstallationReason::Manual);
     assert_eq!(app.item_count(), 4); // All except libx11
-    assert!(!app.filtered_items.iter().any(|i| i.display_name == "X11 Library"));
+    assert!(!app
+        .filtered_items
+        .iter()
+        .any(|i| i.display_name == "X11 Library"));
 }
 
 #[test]
@@ -213,7 +228,9 @@ fn test_cli_workflow_9_sort_by_name() {
     app.apply_filters();
 
     // Default sort should be by name ascending
-    let names: Vec<_> = app.filtered_items.iter()
+    let names: Vec<_> = app
+        .filtered_items
+        .iter()
         .map(|i| i.display_name.as_str())
         .collect();
     assert_eq!(names[0], "Firefox");
@@ -392,14 +409,19 @@ fn test_cli_workflow_16_interactive_filter_panel_keyboard_driven() {
     assert_eq!(app.item_count(), 5); // No filter applied yet
 
     // 3. Navigate to Category dimension (already there by default)
-    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::Category);
+    assert_eq!(
+        app.filter_dimension,
+        kunger_lib::tui::app::FilterDimension::Category
+    );
     assert_eq!(app.filter_cursor, 0);
 
     // 4. Toggle Application category (index 0) - should select it
     let key_event = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
     InputHandler::handle_event(&mut app, Event::Key(key_event));
     assert_eq!(app.category_filters.len(), 1);
-    assert!(app.category_filters.contains(&SoftwareCategory::Application));
+    assert!(app
+        .category_filters
+        .contains(&SoftwareCategory::Application));
     assert_eq!(app.item_count(), 3); // Firefox, Slack, VLC are Applications
 
     // 5. Toggle it again to deselect
@@ -411,7 +433,10 @@ fn test_cli_workflow_16_interactive_filter_panel_keyboard_driven() {
     // 6. Navigate right to Manager dimension
     let key_event = KeyEvent::new(KeyCode::Right, KeyModifiers::NONE);
     InputHandler::handle_event(&mut app, Event::Key(key_event));
-    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::Manager);
+    assert_eq!(
+        app.filter_dimension,
+        kunger_lib::tui::app::FilterDimension::Manager
+    );
     assert_eq!(app.filter_cursor, 0);
 
     // 7. Toggle Apt manager (index 0 in manager list)
@@ -426,7 +451,10 @@ fn test_cli_workflow_16_interactive_filter_panel_keyboard_driven() {
         let key_event = KeyEvent::new(KeyCode::Right, KeyModifiers::NONE);
         InputHandler::handle_event(&mut app, Event::Key(key_event));
     }
-    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::Confidence);
+    assert_eq!(
+        app.filter_dimension,
+        kunger_lib::tui::app::FilterDimension::Confidence
+    );
 
     // 9. Toggle High confidence (at index 3 in ClassificationConfidence::ALL)
     // Current cursor is at 0 (Unknown), need to go to 3 (High)
@@ -438,7 +466,9 @@ fn test_cli_workflow_16_interactive_filter_panel_keyboard_driven() {
     let key_event = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
     InputHandler::handle_event(&mut app, Event::Key(key_event));
     assert_eq!(app.confidence_filters.len(), 1);
-    assert!(app.confidence_filters.contains(&ClassificationConfidence::High));
+    assert!(app
+        .confidence_filters
+        .contains(&ClassificationConfidence::High));
 
     // 10. Should have Firefox (Apt + High confidence)
     assert_eq!(app.item_count(), 1);
@@ -474,16 +504,25 @@ fn test_cli_workflow_17_update_availability_filter() {
     for _ in 0..5 {
         app.filter_dimension_next();
     }
-    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::UpdateAvailable);
+    assert_eq!(
+        app.filter_dimension,
+        kunger_lib::tui::app::FilterDimension::UpdateAvailable
+    );
 
     // Cycle to Available filter
     app.cycle_update_filter();
-    assert_eq!(app.update_filter, kunger_lib::tui::app::UpdateFilter::Available);
+    assert_eq!(
+        app.update_filter,
+        kunger_lib::tui::app::UpdateFilter::Available
+    );
     assert_eq!(app.item_count(), 2); // Firefox and Slack have updates
 
     // Cycle to NotAvailable filter
     app.cycle_update_filter();
-    assert_eq!(app.update_filter, kunger_lib::tui::app::UpdateFilter::NotAvailable);
+    assert_eq!(
+        app.update_filter,
+        kunger_lib::tui::app::UpdateFilter::NotAvailable
+    );
     assert_eq!(app.item_count(), 3); // Git, libx11, VLC don't have updates
 
     // Cycle back to Any

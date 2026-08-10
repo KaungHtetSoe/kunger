@@ -18,9 +18,11 @@ impl ScanProgress {
         }
 
         let gauge = Gauge::default()
-            .block(Block::default()
-                .title(" Scanning... ")
-                .borders(Borders::ALL))
+            .block(
+                Block::default()
+                    .title(" Scanning... ")
+                    .borders(Borders::ALL),
+            )
             .gauge_style(Style::default().fg(Color::Cyan))
             .ratio(progress as f64 / 100.0)
             .label("Scanning inventory... Esc to cancel");
@@ -30,9 +32,7 @@ impl ScanProgress {
 
     pub fn render_centered_message(f: &mut Frame, message: &str, area: Rect) {
         let paragraph = Paragraph::new(message)
-            .block(Block::default()
-                .title(" Scanner ")
-                .borders(Borders::ALL))
+            .block(Block::default().title(" Scanner ").borders(Borders::ALL))
             .style(Style::default().fg(Color::Yellow))
             .alignment(Alignment::Center);
 

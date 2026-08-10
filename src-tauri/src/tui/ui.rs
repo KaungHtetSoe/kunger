@@ -1,6 +1,8 @@
-use ratatui::prelude::*;
 use crate::tui::app::App;
-use crate::tui::components::{TableWidget, StatusBar, SearchBox, FilterPanel, DetailView, ScanProgress};
+use crate::tui::components::{
+    DetailView, FilterPanel, ScanProgress, SearchBox, StatusBar, TableWidget,
+};
+use ratatui::prelude::*;
 
 pub struct UI;
 
@@ -18,14 +20,19 @@ impl UI {
         let vertical_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),  // Search box
-                Constraint::Length(filter_panel_height),  // Filter panel
-                Constraint::Min(5),     // Table/Detail pane
-                Constraint::Length(1),  // Status bar
+                Constraint::Length(3),                   // Search box
+                Constraint::Length(filter_panel_height), // Filter panel
+                Constraint::Min(5),                      // Table/Detail pane
+                Constraint::Length(1),                   // Status bar
             ])
             .split(f.area());
 
-        SearchBox::render(f, &app.search_query, app.cursor_position, vertical_chunks[0]);
+        SearchBox::render(
+            f,
+            &app.search_query,
+            app.cursor_position,
+            vertical_chunks[0],
+        );
 
         if app.filter_panel_visible {
             FilterPanel::render_open(f, app, vertical_chunks[1]);
@@ -44,10 +51,7 @@ impl UI {
         if app.detail_view_visible {
             let horizontal_chunks = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
-                ])
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                 .split(vertical_chunks[2]);
 
             TableWidget::render(f, app, horizontal_chunks[0]);

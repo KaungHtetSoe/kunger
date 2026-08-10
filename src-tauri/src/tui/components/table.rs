@@ -1,6 +1,6 @@
-use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph, Table, Row, Cell, BorderType};
 use crate::tui::app::App;
+use ratatui::prelude::*;
+use ratatui::widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table};
 
 pub struct TableWidget;
 
@@ -17,10 +17,12 @@ impl TableWidget {
             let empty_state = Paragraph::new(message)
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::DarkGray))
-                .block(Block::default()
-                    .title(" Software Items ")
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded));
+                .block(
+                    Block::default()
+                        .title(" Software Items ")
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded),
+                );
             f.render_widget(empty_state, area);
             return;
         }
@@ -49,17 +51,22 @@ impl TableWidget {
             }
         });
 
-        let table = Table::new(rows, [
-            Constraint::Percentage(40),
-            Constraint::Percentage(20),
-            Constraint::Percentage(20),
-            Constraint::Percentage(20),
-        ])
+        let table = Table::new(
+            rows,
+            [
+                Constraint::Percentage(40),
+                Constraint::Percentage(20),
+                Constraint::Percentage(20),
+                Constraint::Percentage(20),
+            ],
+        )
         .header(header)
-        .block(Block::default()
-            .title(" Software Items ")
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded));
+        .block(
+            Block::default()
+                .title(" Software Items ")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
+        );
 
         f.render_widget(table, area);
     }

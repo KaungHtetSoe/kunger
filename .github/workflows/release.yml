@@ -47,8 +47,7 @@ jobs:
       - run: npm ci
 
       - name: Build binaries (amd64)
-        working-directory: src-tauri
-        run: cargo tauri build --bundles appimage,deb
+        run: npm run tauri -- build --bundles appimage,deb
 
       - name: Upload amd64 binaries to release
         env:
@@ -103,8 +102,7 @@ jobs:
       - run: npm ci
 
       - name: Build binaries (arm64)
-        working-directory: src-tauri
-        run: cargo tauri build --bundles deb
+        run: npm run tauri -- build --bundles deb
 
       - name: Upload arm64 binaries to release
         env:

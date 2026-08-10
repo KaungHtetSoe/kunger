@@ -46,16 +46,25 @@ jobs:
 
       - run: npm ci
 
-      - name: Build and publish AppImage + .deb (amd64)
-        uses: tauri-apps/tauri-action@v0
+      - name: Build binaries (amd64)
+        working-directory: src-tauri
+        run: cargo tauri build --bundles appimage,deb
+
+      - name: Upload amd64 binaries to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Kunger ${{ github.ref_name }}"
-          releaseDraft: true
-          prerelease: false
-          args: --bundles appimage,deb
+        run: |
+          # Create or get the draft release
+          gh release create ${{ github.ref_name }} \
+            --draft \
+            --title "Kunger ${{ github.ref_name }}" \
+            --notes "See RELEASE_NOTES.md for details" \
+            2>/dev/null || true
+
+          # Upload amd64 AppImage and .deb
+          find src-tauri/target/release/bundle -name "Kunger_*.AppImage" -o -name "Kunger_*.deb" | while read file; do
+            gh release upload ${{ github.ref_name }} "$file" --clobber
+          done
 
   release-arm64:
     name: Build and publish (arm64)
@@ -93,13 +102,15 @@ jobs:
 
       - run: npm ci
 
-      - name: Build and publish .deb (arm64)
-        uses: tauri-apps/tauri-action@v0
+      - name: Build binaries (arm64)
+        working-directory: src-tauri
+        run: cargo tauri build --bundles deb
+
+      - name: Upload arm64 binaries to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Kunger ${{ github.ref_name }}"
-          releaseDraft: true
-          prerelease: false
-          args: --bundles deb
+        run: |
+          # Upload arm64 .deb to existing draft release
+          find src-tauri/target/release/bundle -name "Kunger_*.deb" | while read file; do
+            gh release upload ${{ github.ref_name }} "$file" --clobber
+          done

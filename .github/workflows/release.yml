@@ -46,8 +46,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Build binaries (amd64)
+      - name: Build Kunger GUI (amd64)
         run: npm run tauri -- build --bundles appimage,deb
+
+      - name: Build kunger-cli minimal package (amd64)
+        run: ./scripts/build-kunger-cli-deb.sh x86_64-unknown-linux-gnu
 
       - name: Upload amd64 binaries to release
         env:
@@ -60,8 +63,8 @@ jobs:
             --notes "See RELEASE_NOTES.md for details" \
             2>/dev/null || true
 
-          # Upload amd64 AppImage and .deb
-          find src-tauri/target/release/bundle -name "Kunger_*.AppImage" -o -name "Kunger_*.deb" | while read file; do
+          # Upload amd64 binaries (AppImage, Kunger GUI .deb, kunger-cli .deb)
+          find src-tauri/target/release/bundle -name "Kunger_*.AppImage" -o -name "Kunger_*.deb" -o -name "kunger-cli_*.deb" | while read file; do
             gh release upload ${{ github.ref_name }} "$file" --clobber
           done
 
@@ -101,14 +104,17 @@ jobs:
 
       - run: npm ci
 
-      - name: Build binaries (arm64)
+      - name: Build Kunger GUI (arm64)
         run: npm run tauri -- build --bundles deb
+
+      - name: Build kunger-cli minimal package (arm64)
+        run: ./scripts/build-kunger-cli-deb.sh aarch64-unknown-linux-gnu
 
       - name: Upload arm64 binaries to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Upload arm64 .deb to existing draft release
-          find src-tauri/target/release/bundle -name "Kunger_*.deb" | while read file; do
+          # Upload arm64 binaries (Kunger GUI .deb, kunger-cli .deb) to existing draft release
+          find src-tauri/target/release/bundle -name "Kunger_*.deb" -o -name "kunger-cli_*.deb" | while read file; do
             gh release upload ${{ github.ref_name }} "$file" --clobber
           done

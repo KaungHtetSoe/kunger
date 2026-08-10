@@ -14,12 +14,31 @@ edition = "2021"
 name = "kunger_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[[bin]]
+name = "kunger"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[[bin]]
+name = "kunger-cli"
+path = "bin/kunger-cli.rs"
+
+[[bin]]
+name = "test-tui"
+path = "bin/test-tui.rs"
+
+[[bin]]
+name = "kunger-cli-simple"
+path = "bin/kunger-cli-simple.rs"
+
+[features]
+desktop = ["dep:tauri", "dep:tauri-plugin-log", "dep:tauri-build"]
+default = ["desktop"]
+
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2", features = [], optional = true }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-log = "2"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -33,6 +52,10 @@ futures = "0.3"
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde_yaml = "0.9"
 csv = "1"
+ratatui = "0.28"
+crossterm = { version = "0.28", features = ["event-stream"] }
+tauri = { version = "2", features = [], optional = true }
+tauri-plugin-log = { version = "2", optional = true }
 
 [lints.clippy]
 all = "warn"

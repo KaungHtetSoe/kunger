@@ -14,6 +14,47 @@ See [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) for the full product specific
 
 ## Screenshots
 
+### CLI TUI (Headless/VPS-Friendly)
+
+The Kunger CLI provides a **text-based user interface** for inventorying software without a display server. Perfect for remote machines, VPS, or container environments.
+
+#### Overview
+
+<p align="center">
+  <img src="screenshots/kunger-cli-overall.png" width="800" alt="Kunger CLI overview showing paginated table with software items, status bar, and keybinding hints">
+</p>
+
+#### Interactive Search
+
+<p align="center">
+  <img src="screenshots/kunger-cli-search.png" width="800" alt="Kunger CLI search mode with real-time filtering as you type">
+</p>
+
+#### Advanced Filtering
+
+<p align="center">
+  <img src="screenshots/kunger-cli-filter.png" width="800" alt="Kunger CLI interactive filter panel showing category, manager, scope, reason, confidence, and update availability dimensions">
+</p>
+
+#### Detail View
+
+<p align="center">
+  <img src="screenshots/kunger-cli-detail.png" width="800" alt="Kunger CLI detail view showing dependencies, version, classification confidence, and other metadata for a selected item">
+</p>
+
+**CLI Features:**
+
+- Paginated table browsing (arrow keys)
+- Real-time search filtering (Tab to focus)
+- **6-dimensional filtering** with interactive modal panel (press `f`)
+- Sort by name, category, manager, version
+- 50/50 split detail view (Enter to open)
+- Scan management with progress tracking (F5)
+- Fully keyboard-operable — no mouse required
+- Works over SSH without X11 forwarding
+
+### Desktop GUI
+
 All screenshots below are from a real scan on Debian (v0.1.0) — 2,094 items across APT and
 manually-installed software, not sample data.
 
@@ -51,6 +92,49 @@ manually-installed software, not sample data.
 
 </details>
 
+## Usage
+
+### CLI (Headless)
+
+```bash
+./kunger-cli
+```
+
+The CLI starts with an empty inventory. Press `F5` to scan for installed software. Use arrow keys to navigate and explore.
+
+**Main Keybindings:**
+
+| Key                   | Action               |
+| --------------------- | -------------------- |
+| `Tab`                 | Focus search box     |
+| `↑`/`↓`               | Navigate items       |
+| `Page Up`/`Page Down` | Jump pages           |
+| `Enter`               | Open detail view     |
+| `f`                   | Open filter panel    |
+| `s`                   | Toggle sort order    |
+| `c`                   | Clear all filters    |
+| `F5`                  | Start inventory scan |
+| `q` / `Esc`           | Quit                 |
+
+**Filter Panel** (press `f`):
+
+| Key            | Action                                                                        |
+| -------------- | ----------------------------------------------------------------------------- |
+| `Left`/`Right` | Switch dimension (Category / Manager / Scope / Reason / Confidence / Updates) |
+| `↑`/`↓`        | Navigate filter values                                                        |
+| `Space`        | Toggle/cycle value                                                            |
+| `c`            | Clear all filters                                                             |
+| `Esc`          | Close panel                                                                   |
+
+The status bar at the bottom shows all available keybindings in your current context.
+
+### Desktop GUI
+
+```bash
+npm run tauri dev    # Development
+npm run tauri build  # Production build
+```
+
 ## Status
 
 v0.1.0, feature-complete for V1 — see [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for what's included,
@@ -60,10 +144,11 @@ Milestone history in [`TASKS.md`](TASKS.md).
 
 ## Technology
 
-- [Tauri 2](https://tauri.app/) + Rust backend
-- React + TypeScript + Tailwind CSS frontend
-- SQLite for local caching
-- Vitest (frontend) and Rust unit/integration tests (backend)
+- **Desktop**: [Tauri 2](https://tauri.app/) + Rust backend, React + TypeScript + Tailwind CSS
+- **CLI/TUI**: [Ratatui](https://ratatui.rs/) + [Crossterm](https://docs.rs/crossterm/) (pure Rust, no display server)
+- **Data**: SQLite for local caching, Rusqlite for querying
+- **Testing**: Vitest (frontend), Rust unit/integration tests (backend + CLI)
+- **Architecture**: Shared `kunger_lib` domain model used by both desktop and CLI
 
 ## Development
 

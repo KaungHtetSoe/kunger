@@ -29,6 +29,28 @@ pub enum SoftwareCategory {
     Unclassified,
 }
 
+impl SoftwareCategory {
+    pub const ALL: &'static [Self] = &[
+        Self::Application,
+        Self::CommandLineTool,
+        Self::Library,
+        Self::Font,
+        Self::Runtime,
+        Self::DevelopmentPackage,
+        Self::Theme,
+        Self::IconPack,
+        Self::Firmware,
+        Self::Driver,
+        Self::KernelComponent,
+        Self::SystemService,
+        Self::DesktopComponent,
+        Self::Documentation,
+        Self::LanguagePack,
+        Self::Miscellaneous,
+        Self::Unclassified,
+    ];
+}
+
 /// The installation source / ownership mechanism for a software item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +69,21 @@ pub enum PackageManager {
     Unknown,
 }
 
+impl PackageManager {
+    pub const ALL: &'static [Self] = &[
+        Self::Apt,
+        Self::Flatpak,
+        Self::Snap,
+        Self::AppImage,
+        Self::Pip,
+        Self::Pipx,
+        Self::Npm,
+        Self::Cargo,
+        Self::Manual,
+        Self::Unknown,
+    ];
+}
+
 /// Whether a software item is installed for the whole system or a single user.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -55,6 +92,10 @@ pub enum InstallationScope {
     User,
     #[default]
     Unknown,
+}
+
+impl InstallationScope {
+    pub const ALL: &'static [Self] = &[Self::System, Self::User, Self::Unknown];
 }
 
 /// Why a package ended up installed: explicitly requested by the user, or
@@ -73,6 +114,10 @@ pub enum InstallationReason {
     Unknown,
 }
 
+impl InstallationReason {
+    pub const ALL: &'static [Self] = &[Self::Manual, Self::Automatic, Self::Unknown];
+}
+
 /// How confident the classification engine is in an item's assigned category.
 ///
 /// Declaration order is significant: variants are ordered from least to
@@ -89,6 +134,16 @@ pub enum ClassificationConfidence {
     Medium,
     High,
     Certain,
+}
+
+impl ClassificationConfidence {
+    pub const ALL: &'static [Self] = &[
+        Self::Unknown,
+        Self::Low,
+        Self::Medium,
+        Self::High,
+        Self::Certain,
+    ];
 }
 
 /// Overall status of a full inventory scan (across all providers).

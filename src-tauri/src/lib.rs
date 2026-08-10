@@ -4,17 +4,23 @@
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
 pub mod classification;
-pub mod commands;
 pub mod domain;
 pub mod inventory;
 pub mod persistence;
 pub mod process;
 pub mod providers;
+pub mod tui;
 
+#[cfg(feature = "desktop")]
+pub mod commands;
+
+#[cfg(feature = "desktop")]
 use std::sync::Arc;
 
+#[cfg(feature = "desktop")]
 use tauri::Manager;
 
+#[cfg(feature = "desktop")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

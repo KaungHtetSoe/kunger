@@ -1,3 +1,22 @@
+# Kunger v0.2.0
+
+## What's new in this release
+
+**CLI TUI for headless/VPS environments** — Kunger now works over SSH without X11 forwarding:
+
+- Interactive TUI (Terminal User Interface) using Ratatui + Crossterm
+- 6-dimensional filtering with keyboard-driven modal panel:
+  - Category, Package Manager, Installation Scope, Installation Reason, Classification Confidence, Update Availability
+- Real-time search with character-by-character filtering
+- Paginated table browsing with keyboard navigation
+- 50/50 split detail view for selected items
+- Scan management with progress tracking (F5 to trigger)
+- Full keyboard operability — no mouse required
+- Complete documentation with 4 CLI screenshots in README
+- 338 tests passing (321 lib + 17 integration, including new filter panel workflows)
+
+---
+
 # Kunger v0.1.0
 
 First release. Kunger is a read-only software inventory, ownership, and dependency explorer for

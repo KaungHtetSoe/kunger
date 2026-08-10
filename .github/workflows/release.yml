@@ -60,6 +60,7 @@ jobs:
   release-arm64:
     name: Build and publish (arm64)
     runs-on: ubuntu-24.04-arm  # GitHub's native arm64 runner
+    needs: release-amd64  # Wait for amd64 to create the draft release
     steps:
       - uses: actions/checkout@v4
 
@@ -99,6 +100,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Kunger ${{ github.ref_name }}"
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
           args: --bundles deb

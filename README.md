@@ -92,12 +92,59 @@ manually-installed software, not sample data.
 
 </details>
 
+## Installation
+
+### Option 1: CLI Only (Minimal, Headless)
+
+For VPS, containers, or systems without a display server:
+
+```bash
+# Download the minimal kunger-cli package
+wget https://github.com/KaungHtetSoe/kunger/releases/download/v0.2.1/kunger-cli_0.2.1_amd64.deb
+
+# Install (only libc6, libssl3 as dependencies)
+sudo dpkg -i kunger-cli_0.2.1_amd64.deb
+
+# Run
+kunger-cli
+```
+
+**Perfect for**: SSH sessions, containerized environments, low-resource systems, CI/CD pipelines
+
+### Option 2: GUI + CLI (Full Experience)
+
+For desktop systems with display server:
+
+```bash
+# Download the full Kunger package
+wget https://github.com/KaungHtetSoe/kunger/releases/download/v0.2.1/Kunger_0.2.1_amd64.deb
+
+# Install (includes WebKit2GTK and all GUI dependencies)
+sudo dpkg -i Kunger_0.2.1_amd64.deb
+
+# Run GUI
+kunger
+
+# Or run CLI
+kunger-cli
+```
+
+**Perfect for**: Desktop/laptop, Debian/Ubuntu machines
+
+### ARM64 Support
+
+Both packages available for ARM64 (Raspberry Pi 5, Graviton2, etc.):
+- `kunger-cli_0.2.1_arm64.deb`
+- `Kunger_0.2.1_arm64.deb`
+
+---
+
 ## Usage
 
 ### CLI (Headless)
 
 ```bash
-./kunger-cli
+kunger-cli
 ```
 
 The CLI starts with an empty inventory. Press `F5` to scan for installed software. Use arrow keys to navigate and explore.
@@ -225,27 +272,32 @@ attaches them to a draft GitHub Release.
 Kunger builds natively for both **amd64** and **arm64** using GitHub's free ARM64 hosted runners.
 Every release includes binaries for both architectures.
 
-**Available for**:
-- **amd64**: AppImage (standalone) + .deb (native package)
-- **arm64**: .deb (native package)
+**Packages available**:
+
+| Package | amd64 | arm64 | Size | Use Case |
+|---------|-------|-------|------|----------|
+| `kunger-cli_*.deb` | ✅ | ✅ | ~8-9 MB | Headless, VPS, containers |
+| `Kunger_*.deb` | ✅ | ✅ | ~9-10 MB | Desktop GUI + CLI |
+| `Kunger_*.AppImage` | ✅ | ❌ | ~86 MB | Standalone (amd64 only) |
 
 **Installation on ARM64** (Raspberry Pi 5, Graviton2 EC2, Oracle Cloud, etc.):
 
 ```bash
-# Download the arm64 .deb from the release page
-wget https://github.com/KaungHtetSoe/kunger/releases/download/v0.2.1/Kunger_0.2.1_arm64.deb
-
-# Install and run
-sudo dpkg -i Kunger_0.2.1_arm64.deb
+# CLI-only (minimal dependencies)
+wget https://github.com/KaungHtetSoe/kunger/releases/download/v0.2.1/kunger-cli_0.2.1_arm64.deb
+sudo dpkg -i kunger-cli_0.2.1_arm64.deb
 kunger-cli
+
+# Or full GUI + CLI
+wget https://github.com/KaungHtetSoe/kunger/releases/download/v0.2.1/Kunger_0.2.1_arm64.deb
+sudo dpkg -i Kunger_0.2.1_arm64.deb
+kunger  # GUI
+kunger-cli  # CLI
 ```
 
-**Why .deb only for ARM64?** AppImage is x86_64-specific. The `.deb` package is the recommended
-installation method on ARM64 — it integrates with your system package manager (`apt`) for updates
-and satisfies dependencies automatically.
-
-**Build pipeline**: Both amd64 and arm64 compile natively on dedicated GitHub Actions runners,
-ensuring optimal performance and compatibility. See `.github/workflows/release.yml` for details.
+**Why native compilation?** Both amd64 and arm64 compile natively on dedicated GitHub Actions
+runners, ensuring optimal performance and full compatibility. See `.github/workflows/release.yml`
+for the CI/CD pipeline.
 
 ## Documentation
 

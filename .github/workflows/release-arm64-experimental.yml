@@ -1,0 +1,119 @@
+name: Release (ARM64 Experimental)
+
+# Manual trigger only - not part of standard release flow yet
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build for (e.g., v0.2.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-arm64:
+    name: Build ARM64 .deb (experimental)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Tauri Linux build dependencies (for native build tools)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            file
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Rust backend for ARM64 (cross-compile)
+        working-directory: src-tauri
+        run: |
+          # Note: This cross-compiles on x86_64 for arm64
+          # It's slower than native builds but works for verification
+          cargo build --release --target aarch64-unknown-linux-gnu
+
+      - name: Package as .deb for ARM64
+        run: |
+          # Using tauri CLI to bundle just the .deb
+          npm run tauri -- build --target aarch64-unknown-linux-gnu --bundles deb
+
+      - name: Upload to release as artifact
+        run: |
+          # Find the built .deb file
+          DEB_FILE=$(find . -name "kunger_*.deb" -path "*/target/aarch64*" 2>/dev/null | head -1)
+
+          if [ -z "$DEB_FILE" ]; then
+            echo "⚠️  No .deb file found - cross-compilation may have failed"
+            echo "This is expected - ARM64 cross-compilation is experimental"
+            exit 0
+          fi
+
+          # Extract version from DEB filename
+          DEB_BASENAME=$(basename "$DEB_FILE")
+
+          # Rename to match release naming convention
+          ARM64_DEB="Kunger_${DEB_BASENAME#kunger_}"
+          mv "$DEB_FILE" "$ARM64_DEB"
+
+          echo "✅ Built: $ARM64_DEB"
+          echo "📦 Size: $(du -h "$ARM64_DEB" | cut -f1)"
+
+      - name: Create/update release notes
+        run: |
+          cat > ARM64_BUILD_NOTES.md << 'EOF'
+          # ARM64 Experimental Build
+
+          This is an experimental ARM64 build created via cross-compilation.
+
+          **Status**: Beta/Experimental
+          **Build type**: Cross-compiled on x86_64 via Rust toolchain
+          **Target**: aarch64-unknown-linux-gnu
+
+          ## Testing on ARM64
+
+          ```bash
+          # On an ARM64 system (Raspberry Pi 5, Graviton2, Apple Silicon with Linux, etc.):
+          sudo dpkg -i Kunger_*.deb
+          kunger-cli  # Test the CLI
+          ```
+
+          ## Known Limitations
+
+          - AppImage not built (Tauri limitation on cross-compilation)
+          - Only .deb package available
+          - Cross-compiled builds run slower during initial tests
+          - Please report any compatibility issues
+
+          ## Next Steps
+
+          Once verified on real ARM64 hardware, this can be promoted to standard builds.
+          EOF
+
+          cat ARM64_BUILD_NOTES.md

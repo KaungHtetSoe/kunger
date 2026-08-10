@@ -1,0 +1,66 @@
+# Multi-architecture build for Kunger (amd64 and arm64)
+# Usage: docker buildx build --platform linux/amd64,linux/arm64 -t kunger:multiarch .
+# Or single-platform: docker buildx build --platform linux/arm64 -t kunger:arm64 .
+
+FROM --platform=$BUILDPLATFORM rust:latest AS builder
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
+# Install build dependencies for current platform
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    libdbus-1-dev \
+    libgtk-3-dev \
+    libsqlite3-dev \
+    libwebkit2gtk-4.1-dev \
+    libsoup-3.0-dev \
+    libjavascriptcoregtk-4.1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /kunger
+
+# Map Docker platforms to Rust targets
+ENV RUST_TARGET_amd64=x86_64-unknown-linux-gnu
+ENV RUST_TARGET_arm64=aarch64-unknown-linux-gnu
+
+# Copy source
+COPY Cargo.* ./
+COPY src-tauri ./src-tauri
+COPY src ./src
+COPY docs ./docs
+
+# Install Rust target for cross-compilation if needed
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+      rustup target add aarch64-unknown-linux-gnu; \
+    fi
+
+# Build Rust backend
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+      cd src-tauri && cargo build --release --target aarch64-unknown-linux-gnu; \
+    else \
+      cd src-tauri && cargo build --release; \
+    fi
+
+# Frontend builder stage
+FROM node:22 AS frontend-builder
+WORKDIR /kunger
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Final runtime stage (empty, for reference only)
+# In practice, you'd package the binaries here with dpkg/fpm for .deb creation
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y \
+    libwebkit2gtk-4.1-0 \
+    libayatana-appindicator3-1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /kunger/target/*/release/kunger-cli* /usr/local/bin/
+COPY --from=builder /kunger/target/*/release/kunger /usr/local/bin/
+
+CMD ["kunger-cli"]

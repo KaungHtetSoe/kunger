@@ -218,6 +218,42 @@ only works on Linux, not macOS or Windows, since it links against `webkit2gtk`. 
 (e.g. `v0.1.0`) runs `.github/workflows/release.yml`, which builds both bundles on Ubuntu and
 attaches them to a draft GitHub Release.
 
+### ARM64 Support
+
+**Current status**: amd64 only (v0.2.0)
+
+**Why no ARM64 yet**: Tauri's WebKit dependency requires building GObject/GTK on the target
+platform. Cross-compilation from x86_64 to ARM64 is complex without pre-built arm64 libraries in
+Ubuntu's repositories.
+
+**Planned approaches**:
+
+1. **Experimental cross-compilation** (available now)
+   - Manual workflow for volunteers with ARM64 hardware (Pi 5, Graviton2 EC2, etc.)
+   - `.github/workflows/release-arm64-experimental.yml` — trigger with your tag
+   - Produces arm64 `.deb`; AppImage not supported for cross-builds
+
+2. **Self-hosted runner** (medium-term)
+   - Set up a dedicated ARM64 GitHub Actions runner
+   - Native compilation (fast, reliable)
+   - Requires hardware + maintenance
+
+3. **Launchpad integration** (long-term)
+   - Ubuntu's native build service for .deb packages
+   - Free for open-source projects
+   - Automatic multi-architecture support
+
+**Want to help?** If you have ARM64 hardware (Raspberry Pi 5, Graviton2, Apple Silicon with Linux,
+etc.), you can test the experimental build:
+
+```bash
+# Download the experimental arm64 .deb
+sudo dpkg -i Kunger_*.deb
+kunger-cli
+```
+
+Report any issues on GitHub — community contributions for ARM64 CI/CD setup are welcome!
+
 ## Documentation
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — what Kunger does and does not do

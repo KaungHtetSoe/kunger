@@ -1,6 +1,6 @@
 [package]
 name = "kunger"
-version = "0.2.0"
+version = "0.2.2"
 default-run = "kunger"
 description = "Kunger — Linux Software Inventory Manager"
 authors = ["Kunger contributors"]

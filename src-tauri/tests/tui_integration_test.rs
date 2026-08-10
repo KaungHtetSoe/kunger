@@ -1,5 +1,6 @@
-use kunger_lib::domain::{SoftwareItem, SoftwareCategory, PackageManager, InstallationScope, InstallationReason};
-use kunger_lib::tui::App;
+use kunger_lib::domain::{SoftwareItem, SoftwareCategory, PackageManager, InstallationScope, InstallationReason, ClassificationConfidence};
+use kunger_lib::tui::{App, handlers::InputHandler};
+use crossterm::event::{Event, KeyEvent, KeyCode, KeyModifiers};
 
 fn create_test_items() -> Vec<SoftwareItem> {
     vec![
@@ -366,5 +367,127 @@ fn test_cli_workflow_15_empty_results() {
 
     // Reset should restore items
     app.reset();
+    assert_eq!(app.item_count(), 5);
+}
+
+#[test]
+fn test_cli_workflow_16_interactive_filter_panel_keyboard_driven() {
+    let mut items = create_test_items();
+    // Add update_available to first item for testing
+    items[0].update_available = true;
+    // Set confidence levels for testing
+    items[0].classification_confidence = ClassificationConfidence::High;
+    items[1].classification_confidence = ClassificationConfidence::Medium;
+    items[2].classification_confidence = ClassificationConfidence::Low;
+
+    let mut app = App::new(items);
+
+    // 1. Verify filter panel starts closed
+    assert!(!app.filter_panel_visible);
+
+    // 2. Press 'f' to open the filter panel via input handler
+    let key_event = KeyEvent::new(KeyCode::Char('f'), KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert!(app.filter_panel_visible);
+    assert_eq!(app.item_count(), 5); // No filter applied yet
+
+    // 3. Navigate to Category dimension (already there by default)
+    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::Category);
+    assert_eq!(app.filter_cursor, 0);
+
+    // 4. Toggle Application category (index 0) - should select it
+    let key_event = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert_eq!(app.category_filters.len(), 1);
+    assert!(app.category_filters.contains(&SoftwareCategory::Application));
+    assert_eq!(app.item_count(), 3); // Firefox, Slack, VLC are Applications
+
+    // 5. Toggle it again to deselect
+    let key_event = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert_eq!(app.category_filters.len(), 0);
+    assert_eq!(app.item_count(), 5);
+
+    // 6. Navigate right to Manager dimension
+    let key_event = KeyEvent::new(KeyCode::Right, KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::Manager);
+    assert_eq!(app.filter_cursor, 0);
+
+    // 7. Toggle Apt manager (index 0 in manager list)
+    let key_event = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert_eq!(app.manager_filters.len(), 1);
+    assert!(app.manager_filters.contains(&PackageManager::Apt));
+    assert_eq!(app.item_count(), 3); // Firefox, Git, libx11 are from Apt
+
+    // 8. Navigate to Confidence dimension
+    for _ in 0..3 {
+        let key_event = KeyEvent::new(KeyCode::Right, KeyModifiers::NONE);
+        InputHandler::handle_event(&mut app, Event::Key(key_event));
+    }
+    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::Confidence);
+
+    // 9. Toggle High confidence (at index 3 in ClassificationConfidence::ALL)
+    // Current cursor is at 0 (Unknown), need to go to 3 (High)
+    for _ in 0..3 {
+        let key_event = KeyEvent::new(KeyCode::Down, KeyModifiers::NONE);
+        InputHandler::handle_event(&mut app, Event::Key(key_event));
+    }
+    // Now at High (index 3)
+    let key_event = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert_eq!(app.confidence_filters.len(), 1);
+    assert!(app.confidence_filters.contains(&ClassificationConfidence::High));
+
+    // 10. Should have Firefox (Apt + High confidence)
+    assert_eq!(app.item_count(), 1);
+    assert_eq!(app.filtered_items[0].display_name, "Firefox");
+
+    // 11. Clear all filters with 'c'
+    let key_event = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert_eq!(app.category_filters.len(), 0);
+    assert_eq!(app.manager_filters.len(), 0);
+    assert_eq!(app.confidence_filters.len(), 0);
+    assert_eq!(app.item_count(), 5);
+
+    // 12. Close filter panel with Esc
+    let key_event = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
+    InputHandler::handle_event(&mut app, Event::Key(key_event));
+    assert!(!app.filter_panel_visible);
+}
+
+#[test]
+fn test_cli_workflow_17_update_availability_filter() {
+    let mut items = create_test_items();
+    items[0].update_available = true;
+    items[1].update_available = false;
+    items[2].update_available = true;
+
+    let mut app = App::new(items);
+
+    // Open filter panel
+    app.open_filter_panel();
+
+    // Navigate to UpdateAvailable dimension
+    for _ in 0..5 {
+        app.filter_dimension_next();
+    }
+    assert_eq!(app.filter_dimension, kunger_lib::tui::app::FilterDimension::UpdateAvailable);
+
+    // Cycle to Available filter
+    app.cycle_update_filter();
+    assert_eq!(app.update_filter, kunger_lib::tui::app::UpdateFilter::Available);
+    assert_eq!(app.item_count(), 2); // Firefox and Slack have updates
+
+    // Cycle to NotAvailable filter
+    app.cycle_update_filter();
+    assert_eq!(app.update_filter, kunger_lib::tui::app::UpdateFilter::NotAvailable);
+    assert_eq!(app.item_count(), 3); // Git, libx11, VLC don't have updates
+
+    // Cycle back to Any
+    app.cycle_update_filter();
+    assert_eq!(app.update_filter, kunger_lib::tui::app::UpdateFilter::Any);
     assert_eq!(app.item_count(), 5);
 }

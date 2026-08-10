@@ -1,3 +1,36 @@
+# Kunger v0.3.0
+
+## What's new in this release
+
+**Multi-architecture support with flexible installation** — Kunger now offers two installation options across both amd64 and ARM64:
+
+### kunger-cli (Minimal, Headless)
+- **1.9 MB** (amd64) / **1.7 MB** (arm64) — pure CLI, no GUI dependencies
+- Perfect for VPS, containers, SSH sessions, CI/CD pipelines
+- Dependencies: only `libc6`, `libssl3`
+- Install: `sudo dpkg -i kunger-cli_*.deb && kunger-cli`
+
+### Kunger (Full GUI + CLI)
+- **9.3 MB** (amd64) / **8.8 MB** (arm64) — desktop GUI + CLI
+- Full graphical interface with dashboard, filters, export
+- Both GUI and CLI available in one package
+- Dependencies: WebKit2GTK, GTK3 (for display servers)
+- Install: `sudo dpkg -i Kunger_*.deb && kunger` (or `kunger-cli`)
+
+### Native ARM64 Support
+- Both packages built natively on GitHub's ARM64 runners
+- Zero cross-compilation complexity — true native binaries
+- Fast builds (arm64 often 40-50% faster than amd64 on same hardware)
+- Tested on: Raspberry Pi 5, AWS Graviton2, Oracle Cloud, etc.
+
+### CI/CD Improvements
+- Automated dual-package builds in every release (no manual steps)
+- Sequential amd64 → arm64 job coordination (reliable release uploads)
+- Both `cargo` and `gh release` CLI for maximum reliability
+- Complete test coverage (338 tests: 321 lib + 17 integration)
+
+---
+
 # Kunger v0.2.0
 
 ## What's new in this release

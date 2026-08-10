@@ -220,26 +220,32 @@ attaches them to a draft GitHub Release.
 
 ### ARM64 Support
 
-**Current status**: ✅ Fully supported (v0.3.0+)
+**Status**: ✅ Fully supported (v0.2.1+)
 
-Kunger builds natively for both **amd64** and **arm64** on GitHub's free ARM64 hosted runners.
+Kunger builds natively for both **amd64** and **arm64** using GitHub's free ARM64 hosted runners.
+Every release includes binaries for both architectures.
 
-**Supported platforms**:
-- amd64: AppImage + .deb
-- arm64: .deb only (AppImage requires additional setup)
+**Available for**:
+- **amd64**: AppImage (standalone) + .deb (native package)
+- **arm64**: .deb (native package)
 
-**Installation on ARM64**:
+**Installation on ARM64** (Raspberry Pi 5, Graviton2 EC2, Oracle Cloud, etc.):
 
 ```bash
-# Raspberry Pi 5, Graviton2, Oracle Cloud, etc.
-sudo dpkg -i Kunger_*_arm64.deb
+# Download the arm64 .deb from the release page
+wget https://github.com/KaungHtetSoe/kunger/releases/download/v0.2.1/Kunger_0.2.1_arm64.deb
+
+# Install and run
+sudo dpkg -i Kunger_0.2.1_arm64.deb
 kunger-cli
 ```
 
-**Why arm64-only .deb?** AppImage is x86_64 specific. For ARM64, the .deb is the recommended
-installation method — it integrates with your system package manager and gets updates via apt.
+**Why .deb only for ARM64?** AppImage is x86_64-specific. The `.deb` package is the recommended
+installation method on ARM64 — it integrates with your system package manager (`apt`) for updates
+and satisfies dependencies automatically.
 
-**Testing**: If you have ARM64 hardware, please test and report any issues!
+**Build pipeline**: Both amd64 and arm64 compile natively on dedicated GitHub Actions runners,
+ensuring optimal performance and compatibility. See `.github/workflows/release.yml` for details.
 
 ## Documentation
 

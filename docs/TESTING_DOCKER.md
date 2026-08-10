@@ -91,6 +91,7 @@ cargo test --lib tui::app -- --test-threads=1
 ```
 
 **What it tests:**
+
 - App state management
 - Filtering logic
 - Search functionality
@@ -108,6 +109,7 @@ cargo test --test tui_integration_test -- --test-threads=1
 ```
 
 **What it tests:**
+
 - Real user workflows
 - Search + filter combinations
 - Navigation across pages

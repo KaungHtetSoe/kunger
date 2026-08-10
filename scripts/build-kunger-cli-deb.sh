@@ -27,7 +27,7 @@ cargo build --release --target "$TARGET" --bin kunger-cli
 cd ..
 
 # Create temporary .deb directory structure
-TEMP_DEB="target/deb-cli-$ARCH"
+TEMP_DEB="src-tauri/target/deb-cli-$ARCH"
 rm -rf "$TEMP_DEB"
 mkdir -p "$TEMP_DEB/DEBIAN"
 mkdir -p "$TEMP_DEB/usr/local/bin"
@@ -81,9 +81,9 @@ EOF
 
 # Build the .deb package
 DEB_NAME="kunger-cli_${VERSION}_${DEB_ARCH}.deb"
-DEB_PATH="target/release/bundle/deb/$DEB_NAME"
+DEB_PATH="src-tauri/target/release/bundle/deb/$DEB_NAME"
 
-mkdir -p "target/release/bundle/deb"
+mkdir -p "src-tauri/target/release/bundle/deb"
 dpkg-deb --build "$TEMP_DEB" "$DEB_PATH"
 
 echo "✅ Built: $DEB_PATH"

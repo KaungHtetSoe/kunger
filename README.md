@@ -220,39 +220,26 @@ attaches them to a draft GitHub Release.
 
 ### ARM64 Support
 
-**Current status**: amd64 only (v0.2.0)
+**Current status**: ✅ Fully supported (v0.3.0+)
 
-**Why no ARM64 yet**: Tauri's WebKit dependency requires building GObject/GTK on the target
-platform. Cross-compilation from x86_64 to ARM64 is complex without pre-built arm64 libraries in
-Ubuntu's repositories.
+Kunger builds natively for both **amd64** and **arm64** on GitHub's free ARM64 hosted runners.
 
-**Planned approaches**:
+**Supported platforms**:
+- amd64: AppImage + .deb
+- arm64: .deb only (AppImage requires additional setup)
 
-1. **Experimental cross-compilation** (available now)
-   - Manual workflow for volunteers with ARM64 hardware (Pi 5, Graviton2 EC2, etc.)
-   - `.github/workflows/release-arm64-experimental.yml` — trigger with your tag
-   - Produces arm64 `.deb`; AppImage not supported for cross-builds
-
-2. **Self-hosted runner** (medium-term)
-   - Set up a dedicated ARM64 GitHub Actions runner
-   - Native compilation (fast, reliable)
-   - Requires hardware + maintenance
-
-3. **Launchpad integration** (long-term)
-   - Ubuntu's native build service for .deb packages
-   - Free for open-source projects
-   - Automatic multi-architecture support
-
-**Want to help?** If you have ARM64 hardware (Raspberry Pi 5, Graviton2, Apple Silicon with Linux,
-etc.), you can test the experimental build:
+**Installation on ARM64**:
 
 ```bash
-# Download the experimental arm64 .deb
-sudo dpkg -i Kunger_*.deb
+# Raspberry Pi 5, Graviton2, Oracle Cloud, etc.
+sudo dpkg -i Kunger_*_arm64.deb
 kunger-cli
 ```
 
-Report any issues on GitHub — community contributions for ARM64 CI/CD setup are welcome!
+**Why arm64-only .deb?** AppImage is x86_64 specific. For ARM64, the .deb is the recommended
+installation method — it integrates with your system package manager and gets updates via apt.
+
+**Testing**: If you have ARM64 hardware, please test and report any issues!
 
 ## Documentation
 

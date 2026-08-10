@@ -22,9 +22,12 @@ impl StatusBar {
         let status_text = if app.is_scanning {
             "Scanning inventory... Esc: Cancel | q: Quit".to_string()
         } else if app.filter_panel_visible {
-            "Filters: Left/Right: Dimension | Up/Down: Value | Space: Toggle | c: Clear | Esc: Close".to_string()
+            "Filters: ◄► Dim | ▲▼ Val | Space: Toggle | c: Clear | Esc: Close".to_string()
         } else {
-            format!("{} | F5: Scan | f: Filters | q: Quit", app.scan_message.clone().unwrap_or(page_info))
+            format!(
+                "{} | Tab: Search | ↑↓: Nav | Enter: Detail | f: Filters | F5: Scan | q: Quit",
+                app.scan_message.clone().unwrap_or(page_info)
+            )
         };
 
         let status = Paragraph::new(status_text)
